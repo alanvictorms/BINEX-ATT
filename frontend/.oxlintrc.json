@@ -1,0 +1,1 @@
+{ "ignorePatterns": [".next/**", "node_modules/**"] }

@@ -1,0 +1,243 @@
+// Schema apontando para o Postgres do Supabase.
+// Convencoes: uuid em IDs, snake_case via @map, sem campo email/password (gerenciado pelo Supabase Auth).
+//
+// Tabelas modeladas: apenas as que o Fastify le/escreve.
+// As demais (deposits, withdrawals, kyc_submissions, support_*, admin_audit_log)
+// ficam acessiveis via RPCs Supabase no painel admin -> nao precisam de model aqui.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+// Supabase usa colunas text para a maioria dos enums conceituais
+// (operations.direction, operations.status, accounts.type, transactions.type).
+// Mantemos esses como String no Prisma e validamos no app via Zod.
+//
+// Os UNICOS enums reais (CREATE TYPE) no Supabase sao:
+//   - otc_asset_status (ACTIVE, INACTIVE)
+//   - price_source     (SERVER, CLIENT, FALLBACK)
+
+enum OtcAssetStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("otc_asset_status")
+}
+
+enum PriceSource {
+  SERVER
+  CLIENT
+  FALLBACK
+
+  @@map("price_source")
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+// Profile equivale ao 'user' do dominio. ID == auth.users(id).
+// Nao tem email/password aqui -> esses vivem em auth.users (Supabase Auth).
+model Profile {
+  id                   String    @id @db.Uuid
+  name                 String
+  kycStatus            String    @default("pending") @map("kyc_status")
+  createdAt            DateTime  @default(now())       @map("created_at") @db.Timestamptz(6)
+  bonusBalance         Decimal   @default(0)           @map("bonus_balance")        @db.Decimal
+  rolloverRequired     Decimal   @default(0)           @map("rollover_required")    @db.Decimal
+  rolloverCompleted    Decimal   @default(0)           @map("rollover_completed")   @db.Decimal
+  blockedAt            DateTime? @map("blocked_at")    @db.Timestamptz(6)
+  blockedReason        String?   @map("blocked_reason")
+  cpf                  String?
+  phone                String?
+  customPayoutForex    Decimal?  @map("custom_payout_forex")  @db.Decimal
+  customPayoutOtc      Decimal?  @map("custom_payout_otc")    @db.Decimal
+  customPayoutCrypto   Decimal?  @map("custom_payout_crypto") @db.Decimal
+
+  accounts Account[]
+
+  @@map("profiles")
+}
+
+model AdminUser {
+  userId    String   @id                @map("user_id")    @db.Uuid
+  role      String   @default("admin")
+  createdAt DateTime @default(now())    @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+
+  @@map("admin_users")
+}
+
+model Account {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String   // 'DEMO' | 'REAL' (Supabase guarda como text, nao enum)
+  balance   Decimal  @default(0) @db.Decimal
+  currency  String   @default("BRL")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile      Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operations   Operation[]
+  transactions Transaction[]
+
+  @@unique([userId, type], map: "accounts_user_id_type_key")
+  @@map("accounts")
+}
+
+model Operation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId   String    @map("account_id")   @db.Uuid
+  assetId     String    @map("asset_id")
+  assetSymbol String    @map("asset_symbol")
+  direction   String    // 'CALL' | 'PUT'
+  amount      Decimal   @db.Decimal
+  payoutPct   Decimal   @map("payout_pct")   @db.Decimal
+  entryPrice  Decimal   @map("entry_price")  @db.Decimal
+  exitPrice   Decimal?  @map("exit_price")   @db.Decimal
+  profit      Decimal?  @db.Decimal
+  status      String    @default("OPEN")
+  expiresAt   DateTime  @map("expires_at")   @db.Timestamptz(6)
+  closedAt    DateTime? @map("closed_at")    @db.Timestamptz(6)
+  createdAt   DateTime  @default(now())      @map("created_at") @db.Timestamptz(6)
+
+  // Audit trail (Fase 5)
+  entryPriceSource PriceSource  @default(CLIENT) @map("entry_price_source")
+  exitPriceSource  PriceSource? @map("exit_price_source")
+  auditHash        String?      @map("audit_hash") @db.VarChar(64)
+
+  // Trilha admin
+  modifiedByAdmin String?   @map("modified_by_admin") @db.Uuid
+  modifiedAt      DateTime? @map("modified_at") @db.Timestamptz(6)
+  adminNotes      String?   @map("admin_notes")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("operations")
+}
+
+model Transaction {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId   String   @map("account_id") @db.Uuid
+  type        String   // texto livre, mapeado dos enums TransactionType pelo app
+  amount      Decimal  @db.Decimal
+  description String?
+  operationId String?  @map("operation_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("transactions")
+}
+
+model OtcAsset {
+  id              String         @id @default(cuid())  // cuid gerado no app, persiste como text na DB (compat com operations.asset_id text)
+  symbol          String         @unique
+  name            String
+  basePrice       Decimal        @map("base_price") @db.Decimal(18, 5)
+  volatility      Decimal        @default(0.001) @db.Decimal(8, 6)
+  trend           Decimal        @default(0)     @db.Decimal(8, 6)
+  payout          Int            @default(85)
+  decimals        Int            @default(5)
+  status          OtcAssetStatus @default(ACTIVE)
+  sessionStartUtc String?        @map("session_start_utc")
+  sessionEndUtc   String?        @map("session_end_utc")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  candles OtcCandle[]
+
+  @@map("otc_assets")
+}
+
+model OtcCandle {
+  id        BigInt   @id @default(autoincrement())
+  assetId   String   @map("asset_id")
+  timeframe Int
+  openTime  DateTime @map("open_time") @db.Timestamptz(6)
+  open      Decimal  @db.Decimal(18, 5)
+  high      Decimal  @db.Decimal(18, 5)
+  low       Decimal  @db.Decimal(18, 5)
+  close     Decimal  @db.Decimal(18, 5)
+
+  asset OtcAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, timeframe, openTime])
+  @@index([assetId, timeframe, openTime(sort: Desc)])
+  @@map("otc_candles")
+}
+
+// ─── Copy Trading ───────────────────────────────────────────────────────────
+// Modulo ISOLADO: tabelas proprias, SEM relations para Profile/Account.
+// Nunca toca a tabela `operations` (rollover/ranking/estatisticas).
+// Toda escrita de saldo passa pelo backend via CTE atomica (ver copy/service.ts).
+
+// Config global chave/valor (gate copyTradeEnabled etc.).
+model AppConfig {
+  key       String   @id
+  value     Json     @db.JsonB
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_config")
+}
+
+// Trader do catalogo, editavel pelo admin.
+model CopyTrader {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  countryCode   String   @default("br") @map("country_code")
+  avatarUrl     String?  @map("avatar_url")
+  vip           Boolean  @default(false)
+  paid          Boolean  @default(false)
+  accessPrice   Decimal  @default(0) @map("access_price") @db.Decimal
+  weeklyGainPct Decimal  @default(0) @map("weekly_gain_pct") @db.Decimal
+  copiers       Int      @default(0)
+  copiedTrades  Int      @default(0) @map("copied_trades")
+  commissionPct Decimal  @default(0) @map("commission_pct") @db.Decimal
+  profitPct     Decimal  @default(0) @map("profit_pct") @db.Decimal
+  lossPct       Decimal  @default(0) @map("loss_pct") @db.Decimal
+  active        Boolean  @default(true)
+  displayOrder  Int      @default(0) @map("display_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("copy_traders")
+}
+
+// Assinatura do usuario a um trader. Sem FK (isolamento).
+model UserCopyTrader {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  traderId    String    @map("trader_id") @db.Uuid
+  activatedAt DateTime  @default(now()) @map("activated_at") @db.Timestamptz(6)
+  pricePaid   Decimal   @default(0) @map("price_paid") @db.Decimal
+  status      String    @default("ACTIVE") // 'ACTIVE' | 'CANCELLED'
+  nextCycleAt DateTime? @map("next_cycle_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, nextCycleAt])
+  @@map("user_copy_traders")
+}
+
+// Operacao copiada gerada. Sem FK (isolamento).
+model CopyTradeOperation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  traderId    String    @map("trader_id") @db.Uuid
+  result      String    // 'WIN' | 'LOSS'
+  amount      Decimal   @db.Decimal
+  pnl         Decimal   @default(0) @db.Decimal
+  status      String    @default("PENDING") // 'PENDING' | 'SETTLED' | 'CANCELLED'
+  scheduledAt DateTime  @map("scheduled_at") @db.Timestamptz(6)
+  settledAt   DateTime? @map("settled_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, scheduledAt])
+  @@index([userId, traderId])
+  @@map("copy_trade_operations")
+}

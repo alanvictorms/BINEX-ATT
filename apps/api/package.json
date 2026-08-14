@@ -1,0 +1,39 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/main.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed-otc": "tsx prisma/seed-otc.ts",
+    "db:promote-admin": "tsx prisma/promote-admin.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^9.1.0",
+    "@fastify/websocket": "^11.2.0",
+    "@prisma/client": "^6.3.1",
+    "@supabase/supabase-js": "^2.106.2",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.3.2",
+    "fastify-plugin": "^5.0.1",
+    "ioredis": "^5.10.1",
+    "jose": "^6.2.3",
+    "ws": "^8.21.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.18.1",
+    "prisma": "^6.3.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

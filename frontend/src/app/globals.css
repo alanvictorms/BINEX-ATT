@@ -1,0 +1,224 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background-color: #060A11;
+    color: #ffffff;
+    font-size: 13px;
+  }
+}
+
+/* ── Site público (marketing + jurídico) ────────────────────────────────────
+   A plataforma trava o scroll do body (o gráfico precisa capturar o gesto) e
+   usa raiz 13px (densidade de terminal). O site precisa do oposto: rolar na
+   janela e tipografia de leitura. Regras ADITIVAS — nada acima muda, então a
+   plataforma segue idêntica. O gatilho é o [data-vx-site] do layout (site). */
+html:has([data-vx-site]),
+body:has([data-vx-site]) {
+  height: auto;
+  overflow: visible;
+  font-size: 16px;
+  background-color: #0a0d12;
+}
+
+/* Âncoras do índice das páginas legais não podem cair atrás do header fixo. */
+html:has([data-vx-site]) { scroll-behavior: smooth; }
+[data-vx-site] :target { scroll-margin-top: 96px; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #16202D; border-radius: 2px; }
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ============================================================
+   VÉRTICE — DESIGN SYSTEM (classes .vx-*)
+   Maquiagem global: estrutura, superfícies, tipografia, controles.
+   Nada aqui altera comportamento — apenas aparência.
+   ============================================================ */
+@layer components {
+  /* --- Estrutura --- */
+  .vx-shell     { @apply flex h-full flex-col overflow-hidden bg-[#060A11] text-[#E4EBF5] antialiased; }
+  .vx-body      { @apply flex min-h-0 flex-1 gap-3 p-3; }
+  .vx-page      { @apply flex min-w-0 flex-1 gap-4 overflow-y-auto rounded-xl border border-[#141C28] bg-[#0A101A] p-5; }
+  .vx-col       { @apply flex min-w-0 flex-col gap-4; }
+
+  /* --- Superfícies --- */
+  .vx-panel     { @apply rounded-xl border border-[#16202D] bg-[#0C131F]; }
+  .vx-panel-p   { @apply rounded-xl border border-[#16202D] bg-[#0C131F] p-5; }
+  .vx-card      { @apply rounded-[10px] border border-[#18222F] bg-[#0E1620]; }
+  .vx-card-p    { @apply rounded-[10px] border border-[#18222F] bg-[#0E1620] p-4; }
+  .vx-card-active { @apply rounded-[10px] border border-[#2E6BE6] bg-[#0F1A2C]; }
+  .vx-divider   { @apply h-px w-full bg-[#16202D]; }
+
+  /* --- Tipografia --- */
+  .vx-h1        { @apply text-[25px] font-bold leading-none tracking-[-0.015em] text-white; }
+  .vx-h2        { @apply text-[19px] font-bold leading-none tracking-[-0.01em] text-white; }
+  .vx-h3        { @apply text-[14.5px] font-bold leading-none text-[#EAF1FA]; }
+  .vx-sub       { @apply text-[12.5px] leading-snug text-[#7E8DA2]; }
+  .vx-sub-sm    { @apply text-[11.5px] leading-snug text-[#6B7A8E]; }
+  .vx-label     { @apply text-[10px] font-bold uppercase tracking-[0.13em] text-[#7E8DA2]; }
+  .vx-value     { @apply text-[14px] font-semibold text-white; }
+  .vx-money     { @apply text-[24px] font-bold tracking-[-0.01em] text-white; }
+  .vx-green     { @apply text-[#1FD196]; }
+  .vx-red       { @apply text-[#F0435A]; }
+  .vx-link      { @apply inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#4B8CF5] transition-colors duration-200 hover:text-[#75A8FF]; }
+
+  /* --- Formulários --- */
+  .vx-field     { @apply flex flex-col gap-2; }
+  .vx-input     { @apply w-full rounded-lg border border-[#1B2735] bg-[#0A1017] px-3.5 py-[11px] text-[13px] text-[#E4EBF5] outline-none transition-colors duration-200 placeholder:text-[#54637A] focus:border-[#2E6BE6]; }
+  .vx-textarea  { @apply w-full resize-none rounded-lg border border-[#1B2735] bg-[#0A1017] px-3.5 py-3 text-[13px] leading-relaxed text-[#E4EBF5] outline-none transition-colors duration-200 placeholder:text-[#54637A] focus:border-[#2E6BE6]; }
+  .vx-select    { @apply w-full appearance-none rounded-lg border border-[#1B2735] bg-[#0A1017] px-3.5 py-[11px] pr-10 text-[13px] text-[#E4EBF5] outline-none transition-colors duration-200 focus:border-[#2E6BE6]; }
+
+  /* --- Botões --- */
+  .vx-btn-blue  { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#1D5FE0] px-4 py-[11px] text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-[#2A6DF0]; }
+  .vx-btn-green { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 py-[11px] text-[13px] font-bold text-white transition-colors duration-200 hover:from-[#20C983] hover:to-[#149E63]; }
+  .vx-btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-[#1B2735] bg-[#0C1320] px-4 py-[11px] text-[13px] font-semibold text-[#AEBBCB] transition-colors duration-200 hover:border-[#2B3D52] hover:text-white; }
+  .vx-icon-btn  { @apply flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg border border-[#1B2735] bg-[#0C1320] text-[#7A8AA0] transition-colors duration-200 hover:border-[#2B3D52] hover:text-white; }
+
+  /* --- Chips / abas --- */
+  .vx-chip        { @apply inline-flex items-center gap-1.5 rounded-md border border-[#1E2A39] bg-[#101825] px-2.5 py-[5px] text-[11px] font-medium text-[#AEBBCB] transition-colors duration-200 hover:border-[#2B3D52] hover:text-white; }
+  .vx-chip-green  { @apply inline-flex items-center gap-1 rounded-md bg-[#153A2D] px-2 py-[3px] text-[10.5px] font-bold text-[#3FE0A6]; }
+  .vx-chip-blue   { @apply inline-flex items-center gap-1 rounded-md bg-[#13233C] px-2 py-[3px] text-[10.5px] font-bold text-[#7FAAFF]; }
+  .vx-tabs        { @apply flex items-center gap-7 border-b border-[#16202D]; }
+  .vx-tab         { @apply relative pb-3 pt-1 text-[13px] font-medium text-[#6B7A8E] transition-colors duration-200 hover:text-[#C3CFDD]; }
+  .vx-tab-active  { @apply relative pb-3 pt-1 text-[13px] font-semibold text-white; }
+  .vx-tab-active::after { content: ""; @apply absolute -bottom-px left-0 h-[2px] w-full rounded-full bg-[#2E6BE6]; }
+  .vx-segment     { @apply flex items-center gap-1 rounded-lg border border-[#1B2735] bg-[#0C1320] p-1; }
+  .vx-segment-item        { @apply rounded-md px-4 py-[7px] text-[12.5px] font-semibold text-[#8B9BB0] transition-colors duration-200 hover:text-white; }
+  .vx-segment-item-active { @apply rounded-md bg-[#1D5FE0] px-4 py-[7px] text-[12.5px] font-semibold text-white; }
+
+  /* --- Ícones em caixa --- */
+  .vx-ibox        { @apply flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-[#1E2A39] bg-[#101825] text-[#8B9BB0]; }
+  .vx-ibox-blue   { @apply flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-[#23406E] bg-[#111E33] text-[#6C9CF8]; }
+  .vx-ibox-green  { @apply flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-[#1E5140] bg-[#0F2A21] text-[#3FE0A6]; }
+  .vx-ibox-amber  { @apply flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] border border-[#5A4620] bg-[#2A2010] text-[#F0B429]; }
+
+  /* --- Tabela --- */
+  .vx-th        { @apply px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7A8E]; }
+  .vx-td        { @apply px-4 py-3 text-left text-[12.5px] text-[#C3CFDD]; }
+}
