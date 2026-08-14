@@ -882,18 +882,13 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
     <div className="flex-1 flex flex-col bg-[#0A101A] min-h-0 overflow-hidden" data-testid="conta-page">
 
       {/* Top tabs */}
-      <div className="flex items-center px-5 border-b border-[#16202D] bg-[#0C131F] flex-shrink-0 gap-1 overflow-x-auto">
+      <div className="vx-tabs px-5 flex-shrink-0 overflow-x-auto">
         {CONTA_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             data-testid={`conta-tab-${t.key}`}
-            className={cn(
-              'px-4 py-3 text-[12.5px] font-semibold transition-colors border-b-2 -mb-px flex-shrink-0 whitespace-nowrap',
-              activeTab === t.key
-                ? 'text-white border-[#2E6BE6]'
-                : 'text-[#7E8DA2] border-transparent hover:text-white'
-            )}
+            className={activeTab === t.key ? 'vx-tab-active flex-shrink-0 whitespace-nowrap' : 'vx-tab flex-shrink-0 whitespace-nowrap'}
           >
             {t.label}
           </button>
