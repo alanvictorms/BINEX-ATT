@@ -52,33 +52,21 @@ interface Withdrawal {
 }
 
 function FloatingInput({
-  label, value, onChange, rightLabel, rightLabelColor = 'text-green-400',
+  label, value, onChange, rightLabel, rightLabelColor = 'text-[#1FD196]',
   readOnly = false, placeholder, type = 'text',
 }: {
   label: string; value: string; onChange?: (v: string) => void
   rightLabel?: string; rightLabelColor?: string; readOnly?: boolean
   placeholder?: string; type?: string
 }) {
-  // Controlado quando recebe onChange; somente-leitura caso contrario.
   const ro = readOnly || !onChange
   return (
-    <div className="relative border border-[#16202D] rounded-lg px-3 pt-4 pb-2 bg-[#0E1620] focus-within:border-blue-500/50 transition-colors">
+    <div className="relative border border-[#1B2735] rounded-[10px] px-3 pt-4 pb-2 bg-[#0C131F] focus-within:border-[#2E6BE6]/50 transition-colors">
       <span className="absolute top-1.5 left-3 text-[10px] text-[#7E8DA2] font-medium">{label}</span>
       <div className="flex items-center justify-between">
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          readOnly={ro}
-          placeholder={placeholder}
-          className={cn(
-            'flex-1 bg-transparent text-sm text-white outline-none placeholder-[#7E8DA2]',
-            ro && 'cursor-default text-[#AEBBCB]'
-          )}
-        />
-        {rightLabel && (
-          <span className={cn('text-xs font-semibold ml-2', rightLabelColor)}>{rightLabel}</span>
-        )}
+        <input type={type} value={value} onChange={(e) => onChange?.(e.target.value)} readOnly={ro} placeholder={placeholder}
+          className={cn('flex-1 bg-transparent text-[13px] text-white outline-none placeholder-[#7A8AA0]', ro && 'cursor-default text-[#AEBBCB]')} />
+        {rightLabel && <span className={cn('text-[11px] font-semibold ml-2', rightLabelColor)}>{rightLabel}</span>}
       </div>
     </div>
   )
@@ -89,25 +77,22 @@ function FloatingSelect({ label, value, onChange, options }: {
 }) {
   if (onChange && options) {
     return (
-      <div className="relative border border-[#16202D] rounded-lg px-3 pt-4 pb-2 bg-[#0E1620] focus-within:border-blue-500/50 transition-colors">
+      <div className="relative border border-[#1B2735] rounded-[10px] px-3 pt-4 pb-2 bg-[#0C131F] focus-within:border-[#2E6BE6]/50 transition-colors">
         <span className="absolute top-1.5 left-3 text-[10px] text-[#7E8DA2] font-medium">{label}</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent text-sm text-white outline-none appearance-none cursor-pointer"
-        >
-          {options.map(o => <option key={o} value={o} className="bg-[#0E1620]">{o}</option>)}
+        <select value={value} onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-[13px] text-white outline-none appearance-none cursor-pointer">
+          {options.map(o => <option key={o} value={o} className="bg-[#0C131F]">{o}</option>)}
         </select>
-        <ChevronDown size={14} className="text-[#7E8DA2] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <ChevronDown size={14} className="text-[#7A8AA0] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
       </div>
     )
   }
   return (
-    <div className="relative border border-[#16202D] rounded-lg px-3 pt-4 pb-2 bg-[#0E1620] cursor-pointer">
+    <div className="relative border border-[#1B2735] rounded-[10px] px-3 pt-4 pb-2 bg-[#0C131F] cursor-pointer">
       <span className="absolute top-1.5 left-3 text-[10px] text-[#7E8DA2] font-medium">{label}</span>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-white">{value}</span>
-        <ChevronDown size={14} className="text-[#7E8DA2]" />
+        <span className="text-[13px] text-white">{value}</span>
+        <ChevronDown size={14} className="text-[#7A8AA0]" />
       </div>
     </div>
   )
@@ -133,11 +118,9 @@ function MinhaContaForm() {
     if (!user) { setLoading(false); return }
     let cancelled = false
     ;(async () => {
-      // Nome inicial vem do auth store; demais campos da tabela profiles.
       const parts = (user.name || '').trim().split(/\s+/)
       setFirstName(parts.shift() ?? '')
       setLastName(parts.join(' '))
-      // select('*') nao quebra se alguma coluna ainda nao existir.
       const { data } = await secureDb.from('profiles').select('*').eq('id', user.id).single()
       if (cancelled) return
       const p = (data ?? {}) as Record<string, any>
@@ -161,46 +144,45 @@ function MinhaContaForm() {
     try {
       const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ')
       const { error } = await secureRpc('update_my_profile', {
-        p_name:       fullName || null,
-        p_nickname:   nickname.trim() || null,
-        p_cpf:        cpf.trim() || null,
-        p_birth_date: birthDate || null,
-        p_country:    country.trim() || null,
-        p_address:    address.trim() || null,
+        p_name: fullName || null, p_nickname: nickname.trim() || null,
+        p_cpf: cpf.trim() || null, p_birth_date: birthDate || null,
+        p_country: country.trim() || null, p_address: address.trim() || null,
       })
       if (error) throw new Error(error.message)
       setMsg({ ok: true, text: 'Dados salvos com sucesso.' })
-    } catch (e: any) {
-      setMsg({ ok: false, text: e?.message ?? 'Erro ao salvar.' })
-    } finally {
-      setSaving(false)
-    }
+    } catch (e: any) { setMsg({ ok: false, text: e?.message ?? 'Erro ao salvar.' }) }
+    finally { setSaving(false) }
   }
 
   return (
-    <div className="w-full lg:flex-1 lg:max-w-[540px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b lg:border-b-0 lg:border-r border-[#16202D]">
-      <p className="text-sm font-semibold text-white mb-5">Dados pessoais:</p>
+    <div className="w-full lg:flex-1 lg:max-w-[540px] px-5 py-5 border-b lg:border-b-0 lg:border-r border-[#16202D]">
+      <div className="flex items-start gap-3 mb-5">
+        <Camera size={18} className="mt-[2px] text-[#7A8AA0]" />
+        <div className="flex-1">
+          <h2 className="text-[15px] font-bold text-white">Perfil</h2>
+          <p className="text-[12px] text-[#7E8DA2] mt-1">Gerencie suas informações pessoais e preferências da conta.</p>
+        </div>
+      </div>
 
       <div className="flex items-center gap-4 mb-6">
         <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-blue-500/20 border-2 border-blue-500/40 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-9 h-9 text-blue-400 fill-current">
+          <div className="w-[70px] h-[70px] rounded-full bg-[#2E6BE6]/20 border-2 border-[#2E6BE6]/40 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-9 h-9 text-[#6C9CF8] fill-current">
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
             </svg>
           </div>
-          <button className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#16202D] border border-[#1B2735] flex items-center justify-center hover:bg-[#1B2735] transition-colors">
-            <Camera size={11} className="text-[#7E8DA2]" />
-          </button>
+          <span className="absolute bottom-[3px] right-[3px] h-[13px] w-[13px] rounded-full bg-[#1FD196] ring-[3px] ring-[#0C131F]" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-white">{user?.email ?? '—'}</div>
-          <div className="text-xs text-[#7E8DA2] mt-0.5">ID: {user?.id?.slice(0, 8) ?? '—'}</div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <CheckCircle2 size={12} className={user?.kycStatus === 'approved' ? 'text-green-400' : 'text-[#7E8DA2]'} />
-            <span className={cn('text-xs font-semibold', user?.kycStatus === 'approved' ? 'text-green-400' : 'text-[#7E8DA2]')}>
+          <div className="flex items-center gap-2">
+            <span className="text-[17px] font-bold text-white">{user?.email?.split('@')[0] ?? '—'}</span>
+            <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border',
+              user?.kycStatus === 'approved' ? 'bg-[#1FD196]/15 text-[#1FD196] border-[#1FD196]/30' : 'bg-[#16202D] text-[#AEBBCB] border-[#1B2735]'
+            )}>
               {user?.kycStatus === 'approved' ? 'Verificado' : 'Não verificado'}
             </span>
           </div>
+          <div className="text-[11px] text-[#7E8DA2] mt-1">ID: {user?.id?.slice(0, 8) ?? '—'}</div>
         </div>
       </div>
 
@@ -208,35 +190,32 @@ function MinhaContaForm() {
         <div className="flex items-center justify-center py-10 text-[#7E8DA2]"><Loader2 className="animate-spin" size={18} /></div>
       ) : (
         <>
-          <div className="flex flex-col gap-3">
-            <FloatingInput label="Apelido" value={nickname} onChange={setNickname} placeholder="Como prefere ser chamado" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             <FloatingInput label="Nome" value={firstName} onChange={setFirstName} placeholder="Seu nome" />
             <FloatingInput label="Sobrenome" value={lastName} onChange={setLastName} placeholder="Seu sobrenome" />
             <FloatingInput label="Data de nascimento" value={birthDate} onChange={setBirthDate} placeholder="AAAA-MM-DD" type="date" />
             <FloatingInput label="CPF" value={cpf} onChange={setCpf} placeholder="000.000.000-00" />
             <FloatingInput label="Email" value={user?.email ?? ''} rightLabel="Verificado" readOnly />
             <FloatingSelect label="País" value={country} onChange={setCountry} options={['Brasil', 'Portugal', 'Outro']} />
-            <FloatingInput label="Endereço" value={address} onChange={setAddress} placeholder="Rua, número, cidade" />
+            <div className="col-span-2">
+              <FloatingInput label="Endereço" value={address} onChange={setAddress} placeholder="Rua, número, cidade, estado, CEP" />
+            </div>
           </div>
 
           {msg && (
-            <div className={cn(
-              'mt-3 text-xs font-medium px-3 py-2 rounded-lg border',
-              msg.ok ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                     : 'bg-red-500/10 border-red-500/30 text-red-400'
-            )}>
-              {msg.text}
-            </div>
+            <div className={cn('mt-3 text-[12px] font-medium px-3 py-2 rounded-[10px] border',
+              msg.ok ? 'bg-[#1FD196]/10 border-[#1FD196]/30 text-[#1FD196]' : 'bg-red-500/10 border-red-500/30 text-red-400'
+            )}>{msg.text}</div>
           )}
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="mt-5 w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors text-sm font-bold text-white flex items-center justify-center gap-2"
-          >
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? 'Salvando…' : 'Salvar'}
-          </button>
+          <div className="mt-5 flex items-center gap-4">
+            <button onClick={handleSave} disabled={saving} data-testid="save-profile-btn"
+              className="px-5 py-[11px] rounded-[10px] bg-[#2E6BE6] hover:bg-[#3B7BF6] disabled:opacity-50 transition-colors text-[13px] font-bold text-white flex items-center justify-center gap-2">
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+            <button className="text-[13px] font-medium text-[#7E8DA2] hover:text-white transition-colors">Descartar</button>
+          </div>
         </>
       )}
     </div>
@@ -247,10 +226,10 @@ function Toggle({ label, defaultOn = true }: { label: string; defaultOn?: boolea
   const [on, setOn] = useState(defaultOn)
   return (
     <button onClick={() => setOn(!on)} className="flex items-center gap-3 text-left">
-      <div className={cn('relative w-10 h-5 rounded-full transition-colors flex-shrink-0', on ? 'bg-blue-500' : 'bg-[#1B2735]')}>
-        <div className={cn('absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform', on ? 'translate-x-5' : 'translate-x-0.5')} />
+      <div className={cn('relative w-[42px] h-[22px] rounded-full transition-colors flex-shrink-0', on ? 'bg-[#1FD196]' : 'bg-[#1B2735]')}>
+        <div className={cn('absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform', on ? 'translate-x-[23px]' : 'translate-x-[3px]')} />
       </div>
-      <span className="text-sm text-white">{label}</span>
+      <span className="text-[13px] text-white">{label}</span>
     </button>
   )
 }
@@ -893,7 +872,6 @@ function RetiradaTab() {
 
 export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTab }) {
   const [activeTab, setActiveTab] = useState<ContaTab>(initialTab)
-  // Saldo real para a barra de saldo (saque sempre opera na conta REAL).
   const barUser = useAuthStore(s => s.user)
   const barBalance = (() => {
     const real = barUser?.accounts?.find(a => a.type === 'REAL')
@@ -901,18 +879,19 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
   })()
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0A101A] min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#0A101A] min-h-0 overflow-hidden" data-testid="conta-page">
 
-      {/* Top tabs — overflow-x-auto pra rolar horizontalmente em mobile */}
-      <div className="flex items-center px-3 sm:px-6 border-b border-[#16202D] bg-[#0E1620] flex-shrink-0 gap-1 overflow-x-auto">
+      {/* Top tabs */}
+      <div className="flex items-center px-5 border-b border-[#16202D] bg-[#0C131F] flex-shrink-0 gap-1 overflow-x-auto">
         {CONTA_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
+            data-testid={`conta-tab-${t.key}`}
             className={cn(
-              'px-3 sm:px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px flex-shrink-0 whitespace-nowrap',
+              'px-4 py-3 text-[12.5px] font-semibold transition-colors border-b-2 -mb-px flex-shrink-0 whitespace-nowrap',
               activeTab === t.key
-                ? 'text-white border-white font-semibold'
+                ? 'text-white border-[#2E6BE6]'
                 : 'text-[#7E8DA2] border-transparent hover:text-white'
             )}
           >
@@ -921,22 +900,15 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
         ))}
       </div>
 
-      {/* Balance info bar — gap menor + rolagem horizontal em mobile */}
-      <div className="flex items-center justify-end gap-3 sm:gap-8 px-3 sm:px-6 py-3 border-b border-[#16202D] bg-[#0E1620] flex-shrink-0 overflow-x-auto">
-        {activeTab === 'minha-conta' && (
-          <div className="hidden sm:flex items-center gap-2 mr-auto flex-shrink-0">
-            <span className="text-xs text-[#7E8DA2]">Minha moeda atual</span>
-            <span className="text-sm font-bold text-white">R$ BRL</span>
-            <button className="text-[10px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded">MUDAR</button>
-          </div>
-        )}
+      {/* Balance bar */}
+      <div className="flex items-center justify-end gap-6 px-5 py-3 border-b border-[#16202D] bg-[#0C131F] flex-shrink-0 overflow-x-auto">
         <div className="text-right flex-shrink-0">
-          <div className="text-xs text-[#7E8DA2]">Disponível para retirada</div>
-          <div className="text-sm font-bold text-white">R$ {fmtBRL(barBalance)}</div>
+          <div className="text-[11px] text-[#7E8DA2]">Disponível para retirada</div>
+          <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-xs text-[#7E8DA2]">Na conta</div>
-          <div className="text-sm font-bold text-white">R$ {fmtBRL(barBalance)}</div>
+          <div className="text-[11px] text-[#7E8DA2]">Na conta</div>
+          <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
         </div>
       </div>
 
@@ -954,8 +926,16 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
             <MinhaContaForm />
 
             {/* Middle — Segurança */}
-            <div className="w-full lg:flex-1 lg:max-w-[480px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b lg:border-b-0 lg:border-r border-[#16202D]">
-              <p className="text-sm font-semibold text-white mb-5">Segurança:</p>
+            <div className="w-full lg:flex-1 lg:max-w-[480px] px-5 py-5 border-b lg:border-b-0 lg:border-r border-[#16202D]">
+              <div className="flex items-start gap-3 mb-5">
+                <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] border border-[#2E6BE6]/30 bg-[#2E6BE6]/10 text-[#6C9CF8]">
+                  <Lock size={16} />
+                </span>
+                <div>
+                  <h3 className="text-[15px] font-bold text-white">Segurança da conta</h3>
+                  <p className="text-[12px] text-[#7E8DA2] mt-1">Proteja sua conta e gerencie o acesso.</p>
+                </div>
+              </div>
 
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-1">
@@ -990,7 +970,7 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
             </div>
 
             {/* Right — Idioma + Fuso + Excluir */}
-            <div className="w-full lg:flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div className="w-full lg:flex-1 px-5 py-5">
               <div className="mb-4">
                 <div className="border border-[#16202D] rounded-lg overflow-hidden">
                   <div className="px-4 py-2 border-b border-[#16202D]">

@@ -155,7 +155,7 @@ export function Header({
             <button
               data-testid="account-balance-button"
               onClick={() => setAccountOpen(v => !v)}
-              className="mt-[6px] flex items-center gap-1.5 text-[18px] font-bold tracking-[-0.01em] text-white"
+              className="mt-[6px] flex items-center gap-1.5 text-[15px] font-bold tracking-[-0.01em] text-white"
             >
               {balance == null
                 ? <span className="inline-block h-4 w-20 animate-pulse rounded bg-white/15" />

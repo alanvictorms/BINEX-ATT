@@ -27,7 +27,15 @@ export function AssetSelectorModal({ selectedAsset, onSelect, onClose, mobile = 
   const [activeCategory, setActiveCategory] = useState<Category>('Moedas')
   const [search, setSearch] = useState('')
   const [showFavOnly, setShowFavOnly] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set(DEFAULT_FAVORITES))
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('asset_favorites')
+        if (saved) return new Set(JSON.parse(saved))
+      } catch {}
+    }
+    return new Set<string>()
+  })
 
   // Janelas de sessão dos pares OTC — sem isto a lista mostraria como aberto um
   // par que o servidor recusa (Admin → OTC → Sessão).
@@ -85,6 +93,9 @@ export function AssetSelectorModal({ selectedAsset, onSelect, onClose, mobile = 
     setFavorites((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('asset_favorites', JSON.stringify([...next]))
+      }
       return next
     })
   }
@@ -95,10 +106,6 @@ export function AssetSelectorModal({ selectedAsset, onSelect, onClose, mobile = 
       <div className="flex shrink-0 items-center justify-between border-b border-[#16202D] px-5 py-4">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-[16px] font-bold leading-none text-white">Selecione o par de negociação</h2>
-          <span className="text-[11.5px] leading-none text-[#7E8DA2]">
-            Atual: <span className="font-semibold text-[#C3CFDD]">{selectedAsset.label}</span>
-            <span className="ml-1.5 font-semibold text-[#1FD196]">{selectedAsset.payout}%</span>
-          </span>
         </div>
         <button
           data-testid="asset-selector-close"
@@ -183,9 +190,7 @@ export function AssetSelectorModal({ selectedAsset, onSelect, onClose, mobile = 
             const prevAsset = filtered[index - 1]
             const isLive = asset.type === 'OTC' && isOtcServerAuthoritative(asset.id)
             const prevIsLive = prevAsset?.type === 'OTC' && isOtcServerAuthoritative(prevAsset.id)
-            const showGroupDivider =
-              index > 0 &&
-              (asset.type !== prevAsset?.type || isLive !== prevIsLive)
+            const showGroupDivider = false
             // Rótulo por TIPO real do ativo — antes tudo que não era OTC virava
             // "Forex", e o BTC da Binance aparecia listado debaixo de FOREX.
             const groupLabel =
