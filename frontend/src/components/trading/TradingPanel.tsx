@@ -940,6 +940,71 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
       </div>
 
       {/* Tempo */}
+      {/* ── Mobile: Tempo, Valor e Lucro numa linha só ──────────────────────
+          O empilhado do desktop consome altura demais no celular, onde o que
+          importa é ver o gráfico e ajustar rápido antes de entrar. Atalhos de
+          investimento e "retorno estimado" saem: o Lucro aqui já dá a leitura. */}
+      {mobile && (
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-3 pt-3">
+          <div>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7E8DA2]">Tempo</span>
+            <div className="flex items-center justify-between rounded-lg border border-[#1B2735] bg-[#0C1320] px-1 py-1">
+              <button
+                onClick={() => adjustTime(-1)}
+                disabled={timeIndex === 0}
+                aria-label="Menos tempo"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#7A8AA0] transition-colors active:bg-[#131E2C] disabled:opacity-30"
+              >
+                <Minus size={15} />
+              </button>
+              <span className="min-w-0 truncate text-[14px] font-bold tabular-nums text-white">
+                {expiryLabel(TIME_OPTIONS[timeIndex], nowBRT)}
+              </span>
+              <button
+                onClick={() => adjustTime(1)}
+                disabled={timeIndex === TIME_OPTIONS.length - 1}
+                aria-label="Mais tempo"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#7A8AA0] transition-colors active:bg-[#131E2C] disabled:opacity-30"
+              >
+                <Plus size={15} />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7E8DA2]">Valor</span>
+            <div className="flex items-center justify-between rounded-lg border border-[#1B2735] bg-[#0C1320] px-1 py-1">
+              <button
+                onClick={() => adjustInvestment(-10)}
+                aria-label="Menos investimento"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#7A8AA0] transition-colors active:bg-[#131E2C]"
+              >
+                <Minus size={15} />
+              </button>
+              <span className="min-w-0 truncate text-[14px] font-bold tabular-nums text-white">
+                R${fmtMoney(investment)}
+              </span>
+              <button
+                onClick={() => adjustInvestment(10)}
+                aria-label="Mais investimento"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#7A8AA0] transition-colors active:bg-[#131E2C]"
+              >
+                <Plus size={15} />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7E8DA2]">Lucro</span>
+            <div className="flex h-[42px] items-center justify-center rounded-lg border border-[#1FD196]/30 bg-[#1FD196]/10 px-3">
+              <span className="text-[14px] font-bold tabular-nums text-[#1FD196]">+{payoutPctDisplay}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!mobile && (
+      <>
       <FloatingBox label="Tempo" sub={TIME_OPTIONS[timeIndex] >= 60 ? `Duração: ${Math.round(TIME_OPTIONS[timeIndex] / 60)} min` : `Duração: ${TIME_OPTIONS[timeIndex]} s`}>
         <div className="flex items-center gap-2">
           <button
@@ -1058,9 +1123,11 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
         </span>
         <span className="hidden">{payoutPctDisplay}%</span>
       </div>
+      </>
+      )}
 
-      {/* CALL / PUT buttons */}
-      <div className="px-3 pb-3 flex flex-col gap-2">
+      {/* CALL / PUT buttons — lado a lado no mobile, empilhados no desktop */}
+      <div className={cn('px-3 pb-3 flex gap-2', mobile && !confirmTrade ? 'flex-row' : 'flex-col')}>
         {confirmTrade ? (
           <div className="flex flex-col gap-2">
             <div className="text-center text-xs text-[#7E8DA2] font-semibold py-1">
@@ -1106,9 +1173,9 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               disabled={placing || livePrice == null || !marketOpen}
               title={!marketOpen ? `Mercado fechado · reabre em ${reopenIn}` : ''}
               className={cn(
-                'w-full rounded-[10px] border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 flex items-center gap-3 shadow-[0_6px_18px_rgba(27,184,120,0.18)] transition-all duration-200 hover:from-[#20C983] hover:to-[#149E63] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
-                // No mobile o botão é o alvo principal do dedo — mais alto e centrado.
-                mobile ? 'py-[18px] justify-center text-center' : 'py-[13px] text-left',
+                'rounded-[10px] border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 flex items-center gap-2 shadow-[0_6px_18px_rgba(27,184,120,0.18)] transition-all duration-200 hover:from-[#20C983] hover:to-[#149E63] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
+                // No mobile divide a linha com o ABAIXO; no desktop ocupa tudo.
+                mobile ? 'flex-1 min-w-0 py-[18px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
               )}
             >
               <ArrowUp size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />
@@ -1128,8 +1195,8 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               disabled={placing || livePrice == null || !marketOpen}
               title={!marketOpen ? `Mercado fechado · reabre em ${reopenIn}` : ''}
               className={cn(
-                'w-full rounded-[10px] border border-[#E5384F]/35 bg-gradient-to-b from-[#B62B41] to-[#8A1C2C] px-4 flex items-center gap-3 shadow-[0_6px_18px_rgba(182,43,65,0.18)] transition-all duration-200 hover:from-[#C7304A] hover:to-[#991F31] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
-                mobile ? 'py-[18px] justify-center text-center' : 'py-[13px] text-left',
+                'rounded-[10px] border border-[#E5384F]/35 bg-gradient-to-b from-[#B62B41] to-[#8A1C2C] px-4 flex items-center gap-2 shadow-[0_6px_18px_rgba(182,43,65,0.18)] transition-all duration-200 hover:from-[#C7304A] hover:to-[#991F31] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
+                mobile ? 'flex-1 min-w-0 py-[18px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
               )}
             >
               <ArrowDown size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />

@@ -11,10 +11,10 @@
  * Baixa de propósito: cada pixel aqui é pixel a menos de gráfico.
  */
 
-import { Briefcase, BarChart3, Plus } from 'lucide-react'
+import { Briefcase, BarChart3, Plus, CandlestickChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type MobileNavAction = 'POSICOES' | 'HISTORICO' | 'DEPOSITO'
+export type MobileNavAction = 'NEGOCIAR' | 'POSICOES' | 'HISTORICO' | 'DEPOSITO'
 
 interface MobileNavProps {
   /** Ação atualmente aberta, pra destacar o item. */
@@ -23,9 +23,10 @@ interface MobileNavProps {
 }
 
 const ITEMS: { icon: React.FC<{ size?: number; strokeWidth?: number }>; label: string; action: MobileNavAction }[] = [
-  { icon: Briefcase,  label: 'Posições',  action: 'POSICOES'  },
-  { icon: BarChart3,  label: 'Histórico', action: 'HISTORICO' },
-  { icon: Plus,       label: 'Depósito',  action: 'DEPOSITO'  },
+  { icon: CandlestickChart, label: 'Negociar',  action: 'NEGOCIAR'  },
+  { icon: Briefcase,        label: 'Posições',  action: 'POSICOES'  },
+  { icon: BarChart3,        label: 'Histórico', action: 'HISTORICO' },
+  { icon: Plus,             label: 'Depósito',  action: 'DEPOSITO'  },
 ]
 
 export function MobileNav({ active, onAction }: MobileNavProps) {

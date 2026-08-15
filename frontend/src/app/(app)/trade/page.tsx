@@ -524,10 +524,17 @@ export default function TradingPage() {
               depositoOpen ? 'DEPOSITO'
                 : positionsDrawer === 'operacoes' ? 'POSICOES'
                 : positionsDrawer === 'historico' ? 'HISTORICO'
+                : sidebarTab === 'TRADE' ? 'NEGOCIAR'
                 : null
             }
             onAction={action => {
               if (action === 'DEPOSITO') { setDepositoOpen(true); return }
+              if (action === 'NEGOCIAR') {
+                // Volta pra tela de negociação e fecha qualquer drawer aberto.
+                setPositionsDrawer(null)
+                setSidebarTab('TRADE')
+                return
+              }
               const tab = action === 'POSICOES' ? 'operacoes' : 'historico'
               // Tocar de novo no mesmo item fecha — comportamento esperado
               // numa barra de navegação que abre drawer.
