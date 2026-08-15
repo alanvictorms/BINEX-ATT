@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, Trash2 } from 'lucide-react'
+import { X, Check, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface Indicator {
@@ -52,87 +52,100 @@ interface IndicadoresPanelProps {
   onClearAll: () => void
 }
 
-function SectionLabel({ label }: { label: string }) {
+// Só o que o TradingChart realmente sabe desenhar. A lista antiga mostrava 13
+// itens acinzentados que não faziam nada ao clicar — ocupavam espaço e davam a
+// impressão de recurso quebrado.
+const AVAILABLE_TREND = TREND_INDICATORS.filter(i => i.impl)
+const AVAILABLE_OSC   = OSCILLATOR_INDICATORS.filter(i => i.impl)
+
+function IndicatorChip({ indicator, active, onToggle }: {
+  indicator: Indicator; active: boolean; onToggle: () => void
+}) {
   return (
-    <div className="px-4 pt-4 pb-1">
-      <span className="text-[10px] font-bold text-[#7E8DA2] tracking-widest">{label}</span>
-    </div>
+    <button
+      onClick={onToggle}
+      aria-pressed={active}
+      className={cn(
+        'flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors',
+        active
+          ? 'border-[#1D5FE0] bg-[#1D5FE0]/15 text-white'
+          : 'border-[#1B2735] bg-[#0A1017] text-[#C3CFDD] hover:border-[#2A3A4D] hover:text-white',
+      )}
+    >
+      <span className="min-w-0 truncate text-[12.5px] font-medium">{indicator.label}</span>
+      {active && <Check size={13} className="shrink-0 text-[#6C9CF8]" />}
+    </button>
   )
 }
 
-function IndicatorRow({ indicator, active, onToggle }: { indicator: Indicator; active: boolean; onToggle: () => void }) {
+function Group({ label, items, activeIds, onToggle }: {
+  label: string; items: Indicator[]; activeIds: Set<string>; onToggle: (id: string) => void
+}) {
+  if (items.length === 0) return null
   return (
-    <button
-      onClick={() => { if (indicator.impl) onToggle() }}
-      className={cn(
-        'w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors group',
-        !indicator.impl && 'opacity-40 cursor-not-allowed',
-        active
-          ? 'bg-[#101825] text-white'
-          : indicator.impl
-            ? 'text-white hover:bg-white/5'
-            : 'text-[#7E8DA2]'
-      )}
-    >
-      <span className="text-[13px] font-medium">{indicator.label}</span>
-      {indicator.impl && (
-        <ChevronRight size={13} className={cn('transition-colors flex-shrink-0', active ? 'text-blue-400' : 'text-[#7E8DA2] group-hover:text-white')} />
-      )}
-    </button>
+    <div>
+      <span className="mb-2 block text-[10px] font-bold tracking-widest text-[#7E8DA2]">{label}</span>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        {items.map(ind => (
+          <IndicatorChip
+            key={ind.id}
+            indicator={ind}
+            active={activeIds.has(ind.id)}
+            onToggle={() => onToggle(ind.id)}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
 export function IndicadoresPanel({ onClose, activeIds, onToggle, onClearAll }: IndicadoresPanelProps) {
   return (
-    <div className="absolute top-0 left-0 h-full z-30 flex" style={{ width: 200 }}>
-      <div className="flex flex-col w-full bg-[#0E1620] border-r border-[#16202D] shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#16202D] flex-shrink-0">
-          <h2 className="text-sm font-bold text-white">Indicadores</h2>
+    <>
+      {/* Clique fora fecha. Transparente: o gráfico continua visível enquanto
+          se escolhe o indicador — é isso que faz o drawer inferior ganhar do
+          painel lateral, que cobria justamente a área útil. */}
+      <div className="absolute inset-0 z-30" onClick={onClose} />
+
+      <div
+        data-testid="indicadores-drawer"
+        className="vx-drawer-up absolute bottom-0 left-0 right-0 z-40 flex max-h-[62%] flex-col rounded-t-2xl border-t border-[#1B2735] bg-[#0E1620] shadow-[0_-20px_50px_rgba(0,0,0,0.6)]"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-[#16202D] px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="h-1 w-9 rounded-full bg-[#2A3A4D]" aria-hidden="true" />
+            <h2 className="text-[13.5px] font-bold text-white">Indicadores</h2>
+            {activeIds.size > 0 && (
+              <span className="rounded-md bg-[#1D5FE0]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#6C9CF8]">
+                {activeIds.size}
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center text-[#7E8DA2] hover:text-white transition-colors"
+            aria-label="Fechar"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7E8DA2] transition-colors hover:bg-white/10 hover:text-white"
           >
             <X size={14} />
           </button>
         </div>
 
-        {/* Scrollable list */}
-        <div className="flex-1 overflow-y-auto">
-          <SectionLabel label="INDICADORES DE TREND" />
-          {TREND_INDICATORS.map((ind) => (
-            <IndicatorRow
-              key={ind.id}
-              indicator={ind}
-              active={activeIds.has(ind.id)}
-              onToggle={() => onToggle(ind.id)}
-            />
-          ))}
-
-          <SectionLabel label="OSCILADORES" />
-          {OSCILLATOR_INDICATORS.map((ind) => (
-            <IndicatorRow
-              key={ind.id}
-              indicator={ind}
-              active={activeIds.has(ind.id)}
-              onToggle={() => onToggle(ind.id)}
-            />
-          ))}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+          <Group label="TREND" items={AVAILABLE_TREND} activeIds={activeIds} onToggle={onToggle} />
+          <Group label="OSCILADORES" items={AVAILABLE_OSC} activeIds={activeIds} onToggle={onToggle} />
         </div>
 
-        {/* Footer */}
         {activeIds.size > 0 && (
-          <div className="border-t border-[#16202D] p-3 flex-shrink-0">
+          <div className="shrink-0 border-t border-[#16202D] p-3">
             <button
               onClick={onClearAll}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors text-sm font-semibold"
+              className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-[13px] font-semibold text-red-400 transition-colors hover:bg-red-500/10"
             >
-              <Trash2 size={13} />
-              Excluir tudo
+              <Trash2 size={13} /> Excluir tudo
             </button>
           </div>
         )}
       </div>
-    </div>
+    </>
   )
 }

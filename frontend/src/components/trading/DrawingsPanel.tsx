@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ChevronRight, MousePointer, Trash2 } from 'lucide-react'
+import { X, Check, MousePointer, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DRAWING_TOOLS = [
@@ -35,83 +35,92 @@ interface DrawingsPanelProps {
   onClearAll?: () => void
 }
 
+// Só as ferramentas que o chart desenha de fato. A lista antiga trazia 22 itens
+// com 15 acinzentados que não respondiam ao clique.
+const AVAILABLE_TOOLS = DRAWING_TOOLS.filter(t => t.impl)
+
 export function DrawingsPanel({ onClose, activeTool, onSelectTool, onClearAll }: DrawingsPanelProps) {
+  // Escolher a ferramenta FECHA o drawer. É o que resolve a sobreposição: o
+  // painel de personalização (cor, espessura) abre logo em seguida no mesmo
+  // canto de baixo, e com a lista aberta ele ficava encoberto.
+  function pick(tool: string | null) {
+    onSelectTool?.(tool)
+    onClose()
+  }
+
   return (
-    <div className="absolute top-0 left-0 h-full z-30 flex" style={{ width: 220 }}>
-      <div className="flex flex-col w-full bg-[#0E1620] border-r border-[#16202D] shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#16202D] flex-shrink-0">
-          <h2 className="text-sm font-bold text-white">Desenhos</h2>
+    <>
+      <div className="absolute inset-0 z-30" onClick={onClose} />
+
+      <div
+        data-testid="desenhos-drawer"
+        className="vx-drawer-up absolute bottom-0 left-0 right-0 z-40 flex max-h-[62%] flex-col rounded-t-2xl border-t border-[#1B2735] bg-[#0E1620] shadow-[0_-20px_50px_rgba(0,0,0,0.6)]"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-[#16202D] px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="h-1 w-9 rounded-full bg-[#2A3A4D]" aria-hidden="true" />
+            <h2 className="text-[13.5px] font-bold text-white">Desenhos</h2>
+          </div>
           <div className="flex items-center gap-1">
             {onClearAll && (
               <button
                 onClick={onClearAll}
                 title="Apagar todos os desenhos"
-                className="w-6 h-6 flex items-center justify-center text-[#7E8DA2] hover:text-red-400 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[#7E8DA2] transition-colors hover:bg-red-500/10 hover:text-red-400"
               >
                 <Trash2 size={13} />
               </button>
             )}
             <button
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center text-[#7E8DA2] hover:text-white transition-colors"
+              aria-label="Fechar"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#7E8DA2] transition-colors hover:bg-white/10 hover:text-white"
             >
               <X size={14} />
             </button>
           </div>
         </div>
 
-        {/* Cursor (deselect tool) */}
-        <button
-          onClick={() => onSelectTool?.(null)}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2.5 w-full transition-colors',
-            activeTool == null
-              ? 'bg-blue-600/20 text-white'
-              : 'text-[#7E8DA2] hover:bg-white/5 hover:text-white'
-          )}
-        >
-          <MousePointer size={13} />
-          <span className="text-[13px] font-medium">Cursor</span>
-        </button>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+          <button
+            onClick={() => pick(null)}
+            className={cn(
+              'flex items-center gap-2 self-start rounded-lg border px-3 py-2 transition-colors',
+              activeTool == null
+                ? 'border-[#1D5FE0] bg-[#1D5FE0]/15 text-white'
+                : 'border-[#1B2735] bg-[#0A1017] text-[#C3CFDD] hover:border-[#2A3A4D] hover:text-white',
+            )}
+          >
+            <MousePointer size={13} />
+            <span className="text-[12.5px] font-medium">Cursor</span>
+          </button>
 
-        {/* Section label */}
-        <div className="px-4 pt-2 pb-1">
-          <span className="text-[10px] font-bold text-[#7E8DA2] tracking-widest">DESENHOS</span>
-        </div>
-
-        {/* Tools list */}
-        <div className="flex-1 overflow-y-auto">
-          {DRAWING_TOOLS.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => { if (tool.impl) onSelectTool?.(tool.id) }}
-              className={cn(
-                'w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors group',
-                !tool.impl && 'opacity-40 cursor-not-allowed',
-                activeTool === tool.id
-                  ? 'bg-blue-600/20 text-white'
-                  : tool.impl
-                    ? 'text-white hover:bg-white/5'
-                    : 'text-[#7E8DA2]'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                {tool.dot && (
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tool.dot }} />
-                )}
-                <span className="text-[13px] font-medium leading-tight">{tool.label}</span>
-              </div>
-              {tool.impl && (
-                <ChevronRight size={13} className={cn(
-                  'flex-shrink-0 transition-colors',
-                  activeTool === tool.id ? 'text-blue-400' : 'text-[#7E8DA2] group-hover:text-white'
-                )} />
-              )}
-            </button>
-          ))}
+          <div>
+            <span className="mb-2 block text-[10px] font-bold tracking-widest text-[#7E8DA2]">FERRAMENTAS</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {AVAILABLE_TOOLS.map(tool => {
+                const active = activeTool === tool.id
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={() => pick(tool.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      'flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                      active
+                        ? 'border-[#1D5FE0] bg-[#1D5FE0]/15 text-white'
+                        : 'border-[#1B2735] bg-[#0A1017] text-[#C3CFDD] hover:border-[#2A3A4D] hover:text-white',
+                    )}
+                  >
+                    <span className="min-w-0 truncate text-[12.5px] font-medium leading-tight">{tool.label}</span>
+                    {active && <Check size={13} className="shrink-0 text-[#6C9CF8]" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -35,8 +35,11 @@ export function DrawingSettingsPanel({
   onDelete, onBack,
 }: DrawingSettingsPanelProps) {
   return (
-    <div className="absolute top-0 left-0 h-full z-30 flex" style={{ width: 220 }}>
-      <div className="flex flex-col w-full bg-[#0E1620] border-r border-[#16202D] shadow-2xl">
+    // Drawer inferior com z-index acima do drawer da lista: a personalização
+    // precisa aparecer por cima, nunca por baixo. Era exatamente esse o bug —
+    // os dois viviam em z-30 e a lista cobria as opções de cor e espessura.
+    <div className="vx-drawer-up absolute bottom-0 left-0 right-0 z-50 flex max-h-[62%] flex-col rounded-t-2xl border-t border-[#1B2735] bg-[#0E1620] shadow-[0_-20px_50px_rgba(0,0,0,0.6)]">
+      <div className="flex min-h-0 w-full flex-col overflow-y-auto">
 
         {/* Breadcrumb header */}
         <div className="flex items-center gap-2 px-3 py-3 border-b border-[#16202D] flex-shrink-0">
