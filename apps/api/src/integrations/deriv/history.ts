@@ -17,6 +17,7 @@ import { DerivClient } from './client.js'
 import { derivSymbolFor, isDerivGranularity } from './symbols.js'
 import { loadFactors } from './factors.js'
 import { redis } from '../../redis.js'
+import { prisma } from '../../prisma.js'
 
 export interface OhlcPoint { t: number; o: number; h: number; l: number; c: number }
 
@@ -36,6 +37,26 @@ async function ensureClient(): Promise<DerivClient> {
   }
   await connecting
   return client
+}
+
+// Gate do admin (app_config.derivEnabled), com cache curto: e um toggle de
+// operacao, entao 30s de atraso pra propagar e aceitavel e evita uma ida ao
+// Postgres em todo carregamento de grafico.
+let gateValue = false
+let gateCheckedAt = 0
+const GATE_TTL_MS = 30_000
+
+async function providerEnabled(): Promise<boolean> {
+  const now = Date.now()
+  if (now - gateCheckedAt < GATE_TTL_MS) return gateValue
+  gateCheckedAt = now
+  try {
+    const row = await prisma.appConfig.findUnique({ where: { key: 'derivEnabled' } })
+    gateValue = row?.value === true || row?.value === 'true'
+  } catch {
+    gateValue = false // sem config legivel, o seguro e nao chamar terceiro
+  }
+  return gateValue
 }
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
@@ -67,6 +88,9 @@ export async function fetchDeepHistory(params: {
 
   const derivSymbol = derivSymbolFor(otcSymbol)
   if (!derivSymbol) return []
+
+  // Toggle do admin: desligado, a rota entrega so o Postgres.
+  if (!(await providerEnabled())) return []
 
   const end = Math.floor(before.getTime() / 1000)
   const cacheKey = `otc:deriv:hist:${otcSymbol}:${tf}:${end}:${limit}`

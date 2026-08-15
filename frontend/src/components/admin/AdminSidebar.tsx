@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Brain, Users, Wallet, TrendingUp, ShieldCheck,
   ArrowDownCircle, ArrowUpCircle, MessageSquare, UserPlus, Copy,
   Trophy, Gift, Zap, BarChart2, Clock, Cpu, Settings, ChevronRight,
-  LogOut, Lock, FileSearch, X, Activity, Globe, Gauge,
+  LogOut, Lock, FileSearch, X, Activity, Globe, Gauge, Database,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
@@ -55,6 +55,7 @@ const SECTIONS: NavSection[] = [
       { label: 'Ativos',         href: '/admin/ativos',       icon: BarChart2 },
       { label: 'Horário Mercado',href: '/admin/horario',       icon: Clock },
       { label: 'Cadastro OTC',   href: '/admin/otc',           icon: Cpu },
+      { label: 'Deriv',          href: '/admin/deriv',         icon: Database },
     ],
   },
   {
