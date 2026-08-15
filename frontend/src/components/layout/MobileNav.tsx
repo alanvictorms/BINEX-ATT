@@ -1,49 +1,52 @@
 'use client'
 
-import { BarChart2, Headphones, User, Trophy, TrendingUp, MoreHorizontal, Users } from 'lucide-react'
+/**
+ * Barra inferior do mobile.
+ *
+ * Antes espelhava as abas do desktop (Trade, Suporte, Conta, Copy, Mais) — cinco
+ * destinos competindo por espaço numa barra que só precisa dar acesso rápido ao
+ * que se usa operando. Agora são três AÇÕES, e por isso o contrato deixou de ser
+ * `SidebarTab` e virou um verbo: quem chama decide o que abrir.
+ *
+ * Baixa de propósito: cada pixel aqui é pixel a menos de gráfico.
+ */
+
+import { Briefcase, BarChart3, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type SidebarTab = 'TRADE' | 'SUPORTE' | 'CONTA' | 'TORNEIOS' | 'MERCADO' | 'MAIS' | 'COPY'
+export type MobileNavAction = 'POSICOES' | 'HISTORICO' | 'DEPOSITO'
 
 interface MobileNavProps {
-  activeTab: SidebarTab
-  onTabChange: (tab: SidebarTab) => void
+  /** Ação atualmente aberta, pra destacar o item. */
+  active?: MobileNavAction | null
+  onAction: (action: MobileNavAction) => void
 }
 
-const items: { icon: React.FC<{ size: number }>; label: string; tab: SidebarTab; badge?: number }[] = [
-  { icon: BarChart2,      label: 'Trade',     tab: 'TRADE'    },
-  { icon: Headphones,     label: 'Suporte',   tab: 'SUPORTE'  },
-  { icon: User,           label: 'Conta',     tab: 'CONTA'    },
-  { icon: Users,          label: 'Copy',      tab: 'COPY'     },
-  { icon: MoreHorizontal, label: 'Mais',      tab: 'MAIS'     },
+const ITEMS: { icon: React.FC<{ size?: number; strokeWidth?: number }>; label: string; action: MobileNavAction }[] = [
+  { icon: Briefcase,  label: 'Posições',  action: 'POSICOES'  },
+  { icon: BarChart3,  label: 'Histórico', action: 'HISTORICO' },
+  { icon: Plus,       label: 'Depósito',  action: 'DEPOSITO'  },
 ]
 
-export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
+export function MobileNav({ active, onAction }: MobileNavProps) {
   return (
-    <nav className="flex items-stretch bg-[#0C131F] border-t border-[#16202D] flex-shrink-0">
-      {items.map(({ icon: Icon, label, tab, badge }) => {
-        const isActive = activeTab === tab
+    <nav className="flex shrink-0 items-stretch border-t border-[#16202D] bg-[#0C131F]">
+      {ITEMS.map(({ icon: Icon, label, action }) => {
+        const isActive = active === action
         return (
           <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
+            key={action}
+            data-testid={`mobile-nav-${action.toLowerCase()}`}
+            onClick={() => onAction(action)}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center py-2 gap-0.5 relative transition-colors',
-              isActive ? 'text-blue-400' : 'text-[#7E8DA2]'
+              // flex-1 divide o comprimento igualmente entre os três.
+              'relative flex flex-1 flex-col items-center justify-center gap-[3px] py-[7px] transition-colors',
+              isActive ? 'text-[#6C9CF8]' : 'text-[#7E8DA2] active:text-white',
             )}
           >
-            {isActive && (
-              <span className="absolute top-0 left-2 right-2 h-[2px] bg-blue-500 rounded-b" />
-            )}
-            <div className="relative">
-              <Icon size={18} />
-              {badge != null && (
-                <span className="absolute -top-1 -right-2 min-w-[13px] h-[13px] px-[2px] flex items-center justify-center bg-blue-500 text-white text-[8px] font-bold rounded-full leading-none">
-                  {badge}
-                </span>
-              )}
-            </div>
-            <span className="text-[9px] font-semibold leading-none">{label}</span>
+            {isActive && <span className="absolute left-3 right-3 top-0 h-[2px] rounded-b bg-[#1D5FE0]" />}
+            <Icon size={17} strokeWidth={2} />
+            <span className="text-[9.5px] font-semibold leading-none">{label}</span>
           </button>
         )
       })}

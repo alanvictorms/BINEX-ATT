@@ -438,9 +438,9 @@ export default function TradingPage() {
                   <div className={cn('text-[8px] font-bold leading-tight', isDemo ? 'text-yellow-400' : 'text-green-400')}>
                     {isDemo ? 'DEMO' : 'REAL'}
                   </div>
-                  <div className="text-xs font-bold text-white leading-tight">
+                  <div className="text-[15px] font-bold text-white leading-tight">
                     {balance == null
-                      ? <span className="inline-block w-12 h-3 rounded bg-white/15 animate-pulse" />
+                      ? <span className="inline-block w-16 h-4 rounded bg-white/15 animate-pulse" />
                       : <>R${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>}
                   </div>
                 </div>
@@ -470,13 +470,24 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Deposit */}
+            {/* Depósito — só o "+" no mobile, pra sobrar largura pro saldo */}
             <button
               onClick={() => setDepositoOpen(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-xs font-bold text-white transition-colors"
+              aria-label="Depósito"
+              title="Depósito"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-500 text-white transition-colors hover:bg-green-400"
             >
-              <Plus size={12} />
-              Depósito
+              <Plus size={18} strokeWidth={2.6} />
+            </button>
+
+            {/* Avatar — atalho pra conta */}
+            <button
+              onClick={() => { setContaInitialTab('minha-conta'); setSidebarTab('CONTA') }}
+              aria-label="Minha conta"
+              title="Minha conta"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#22344A] bg-[#2E6BE6]/20 text-[13px] font-bold uppercase text-[#6C9CF8] transition-colors hover:bg-[#2E6BE6]/30"
+            >
+              {(displayedEmail?.[0] ?? 'A')}
             </button>
           </div>
         </header>
@@ -504,7 +515,17 @@ export default function TradingPage() {
 
         {/* Mobile bottom navigation — oculto em paisagem */}
         {!isPhoneLandscape && (
-          <MobileNav activeTab={sidebarTab} onTabChange={setSidebarTab} />
+          <MobileNav
+            active={depositoOpen ? 'DEPOSITO' : null}
+            onAction={action => {
+              if (action === 'DEPOSITO') { setDepositoOpen(true); return }
+              // Posições e Histórico ainda abrem as telas existentes de Conta.
+              // A apresentação em drawer depende de extrair esses blocos do
+              // MobileTradingSheet, que é o próximo passo.
+              setContaInitialTab(action === 'POSICOES' ? 'operacoes' : 'transacoes')
+              setSidebarTab('CONTA')
+            }}
+          />
         )}
       </div>
 
