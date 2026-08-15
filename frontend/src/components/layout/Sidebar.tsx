@@ -24,9 +24,7 @@ export function Sidebar({ activeTab, onTabChange, onSettings }: SidebarProps) {
       data-testid="sidebar"
       className="flex w-[96px] shrink-0 select-none flex-col rounded-xl border border-[#141C28] bg-[#0A101A] p-2"
     >
-      {/* flex-1 + justify-center deixa o menu centralizado na vertical,
-          com os controles de som/config ancorados embaixo. */}
-      <div className="flex flex-1 flex-col justify-center gap-[3px]">
+      <div className="flex flex-col gap-[3px]">
         {NAV.map(item => {
           const isActive = activeTab === item.tab
           return (
@@ -56,7 +54,7 @@ export function Sidebar({ activeTab, onTabChange, onSettings }: SidebarProps) {
         })}
       </div>
 
-      <div className="flex shrink-0 flex-col items-center gap-4 pb-2">
+      <div className="mt-auto flex flex-col items-center gap-4 pb-2">
         <button
           title="Som"
           className="text-[#66768C] transition-colors duration-200 hover:text-white"

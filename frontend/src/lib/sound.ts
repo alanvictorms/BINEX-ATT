@@ -280,54 +280,60 @@ class SoundManager {
 
   private synthesize(name: SoundName): void {
     switch (name) {
-      // 1. Abertura — clique de confirmação seco, tom médio, "registrado".
+      // 1. Abertura — "thock" tátil: corpo grave curto + camada aguda quase
+      // inaudível que dá a sensação de contato. Mais físico que um beep único.
       case 'open':
-        this.playVoice({ freq: 720, at: 0, dur: 0.07, type: 'triangle', peak: 0.5, attack: 0.003, decay: 0.06, release: 0.03, reverb: 0.15 })
+        this.playVoice({ freq: 392.00, at: 0,     dur: 0.05, type: 'triangle', peak: 0.40, attack: 0.005, decay: 0.05, release: 0.05, harm: 0.14, reverb: 0.14 })
+        this.playVoice({ freq: 1567.98, at: 0.004, dur: 0.012, type: 'sine',   peak: 0.10, attack: 0.002, decay: 0.02, release: 0.02, reverb: 0 })
         break
 
-      // 2. Acerto — ascendente sóbrio (quinta justa E5→B5), timbre de sino.
+      // 2. Acerto — tríade maior ascendente (A5–C#6–E6). Três notas em vez de
+      // duas soam resolvidas sem virar fanfarra; ataque macio tira o "bipe".
       case 'win':
-        this.playVoice({ freq: 659.25, at: 0.00, dur: 0.10, type: 'sine', peak: 0.42, decay: 0.14, release: 0.10, harm: 0.18 })
-        this.playVoice({ freq: 987.77, at: 0.09, dur: 0.12, type: 'sine', peak: 0.42, decay: 0.16, release: 0.12, harm: 0.18 })
+        this.playVoice({ freq: 880.00,  at: 0.00, dur: 0.09, type: 'sine', peak: 0.34, attack: 0.008, decay: 0.13, release: 0.11, harm: 0.20, reverb: 0.30 })
+        this.playVoice({ freq: 1108.73, at: 0.07, dur: 0.09, type: 'sine', peak: 0.34, attack: 0.008, decay: 0.13, release: 0.11, harm: 0.20, reverb: 0.30 })
+        this.playVoice({ freq: 1318.51, at: 0.14, dur: 0.13, type: 'sine', peak: 0.36, attack: 0.008, decay: 0.18, release: 0.16, harm: 0.22, reverb: 0.34 })
         break
 
-      // 3. Erro/perda — descendente uma OITAVA abaixo do win (B4→E4): registro
-      // grave e sóbrio, claramente distinto do acerto. MESMO volume e duração.
+      // 3. Perda — descendente por sexta menor (A4→F4), MESMO peak e duração
+      // somados do win: feedback honesto, sem punir com volume.
       case 'loss':
-        this.playVoice({ freq: 493.88, at: 0.00, dur: 0.10, type: 'sine', peak: 0.42, decay: 0.14, release: 0.10, harm: 0.22 })
-        this.playVoice({ freq: 329.63, at: 0.09, dur: 0.12, type: 'sine', peak: 0.42, decay: 0.16, release: 0.12, harm: 0.22 })
+        this.playVoice({ freq: 440.00, at: 0.00, dur: 0.11, type: 'sine', peak: 0.34, attack: 0.010, decay: 0.15, release: 0.12, harm: 0.26, reverb: 0.28 })
+        this.playVoice({ freq: 349.23, at: 0.10, dur: 0.16, type: 'sine', peak: 0.36, attack: 0.010, decay: 0.20, release: 0.18, harm: 0.26, reverb: 0.32 })
         break
 
-      // Empate — neutro: duas notas iguais (sem subir nem descer).
+      // 4. Empate — mesma nota duas vezes: nem sobe nem desce, e é isso mesmo.
       case 'draw':
-        this.playVoice({ freq: 587.33, at: 0.00, dur: 0.10, type: 'sine', peak: 0.38, decay: 0.14, release: 0.10, harm: 0.12 })
-        this.playVoice({ freq: 587.33, at: 0.10, dur: 0.12, type: 'sine', peak: 0.38, decay: 0.14, release: 0.10, harm: 0.12 })
+        this.playVoice({ freq: 587.33, at: 0.00, dur: 0.10, type: 'sine', peak: 0.30, attack: 0.008, decay: 0.14, release: 0.11, harm: 0.14, reverb: 0.26 })
+        this.playVoice({ freq: 587.33, at: 0.11, dur: 0.13, type: 'sine', peak: 0.30, attack: 0.008, decay: 0.16, release: 0.13, harm: 0.14, reverb: 0.26 })
         break
 
-      // 4. Tick de contagem — bem baixo e curto.
+      // 5. Tick de contagem — precisa desaparecer no fundo; repete muito.
       case 'tick':
-        this.playVoice({ freq: 1000, at: 0, dur: 0.02, type: 'sine', peak: 0.16, attack: 0.002, decay: 0.03, release: 0.02, reverb: 0 })
+        this.playVoice({ freq: 1396.91, at: 0, dur: 0.014, type: 'sine', peak: 0.12, attack: 0.002, decay: 0.022, release: 0.018, reverb: 0 })
         break
 
-      // 5. Clique de UI — quase subliminar.
+      // 6. Clique de UI — o mais curto de todos, quase subliminar.
       case 'click':
-        this.playVoice({ freq: 1200, at: 0, dur: 0.015, type: 'triangle', peak: 0.22, attack: 0.002, decay: 0.03, release: 0.02, reverb: 0.08 })
+        this.playVoice({ freq: 2093.00, at: 0, dur: 0.010, type: 'sine', peak: 0.16, attack: 0.001, decay: 0.018, release: 0.015, reverb: 0.05 })
         break
 
-      // 6. Toggle/seleção — tick suave, distinto do click comum.
+      // 7. Toggle — micro salto de dois passos, distingue de um clique comum.
       case 'toggle':
-        this.playVoice({ freq: 880, at: 0, dur: 0.03, type: 'triangle', peak: 0.26, attack: 0.002, decay: 0.04, release: 0.03, reverb: 0.1 })
+        this.playVoice({ freq: 784.00,  at: 0.000, dur: 0.022, type: 'triangle', peak: 0.20, attack: 0.002, decay: 0.03, release: 0.025, reverb: 0.10 })
+        this.playVoice({ freq: 1046.50, at: 0.030, dur: 0.026, type: 'triangle', peak: 0.20, attack: 0.002, decay: 0.035, release: 0.03, reverb: 0.10 })
         break
 
-      // 7. Notificação — 2 tons neutros (quarta justa A5→D6), suave.
+      // 8. Notificação — duas notas espaçadas, com ar. Chama sem assustar.
       case 'notify':
-        this.playVoice({ freq: 880.0,  at: 0.00, dur: 0.10, type: 'sine', peak: 0.34, decay: 0.12, release: 0.10, harm: 0.1 })
-        this.playVoice({ freq: 1174.7, at: 0.12, dur: 0.12, type: 'sine', peak: 0.34, decay: 0.14, release: 0.12, harm: 0.1 })
+        this.playVoice({ freq: 659.25, at: 0.00, dur: 0.10, type: 'sine', peak: 0.28, attack: 0.010, decay: 0.14, release: 0.13, harm: 0.12, reverb: 0.38 })
+        this.playVoice({ freq: 987.77, at: 0.15, dur: 0.15, type: 'sine', peak: 0.28, attack: 0.010, decay: 0.18, release: 0.17, harm: 0.12, reverb: 0.38 })
         break
 
-      // 8. Ação inválida — tom grave curto "afundando", distinto da perda.
+      // 9. Ação inválida — grave afundando. Grave o bastante pra não confundir
+      // com a perda, que vive uma oitava acima.
       case 'error':
-        this.playVoice({ freq: 233.08, at: 0, dur: 0.10, type: 'triangle', peak: 0.40, attack: 0.004, decay: 0.10, release: 0.06, glideTo: 174.61, harm: 0.2, reverb: 0.1 })
+        this.playVoice({ freq: 174.61, at: 0, dur: 0.11, type: 'triangle', peak: 0.36, attack: 0.006, decay: 0.11, release: 0.08, glideTo: 116.54, harm: 0.24, reverb: 0.12 })
         break
     }
   }

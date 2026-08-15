@@ -1523,7 +1523,11 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
       // ── Separação tick / frame ────────────────────────────────────────────
       // targetPrice  → preço real do tick (200ms)
       // displayedPrice → interpola suavemente até targetPrice a cada frame (~60fps)
-      const SMOOTH = 0.12
+      // Constante de TEMPO, nao fator por frame. Com fator fixo por frame a
+      // suavizacao depende do refresh: num monitor de 120Hz ela converge no
+      // dobro da velocidade de um de 60Hz e o movimento fica seco/arranhado.
+      // 130ms reproduz o comportamento antigo de 0.12 a 60fps.
+      const SMOOTH_TAU_MS = 130
 
       // ── Camada de "vida" da vela ao vivo (cosmética) ──────────────────────
       // Micro tremor estilo Quotex: faz a vela em formação "vibrar" entre os ticks
@@ -1533,8 +1537,8 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
       // movimento fabricado. Valores conservadores e calibráveis no olho.
       const liveJitterEnabled = !realConfig
       const LIVE_JITTER_MAX   = 0.00010  // amplitude máx (fração do preço) ~0.010%
-      const LIVE_JITTER_STEP  = 0.00003  // velocidade do tremor por frame
-      const LIVE_JITTER_DECAY = 0.90     // puxa o tremor de volta ao centro (mean-revert)
+      const LIVE_JITTER_STEP  = 0.00003  // amplitude por ~16.7ms (normalizada por dt)
+      const LIVE_JITTER_TAU_MS = 158     // reversao a media, em tempo (equivale a 0.90/frame a 60fps)
       let   liveJitter        = 0
 
       // Âncora de abertura: fechamento do último candle histórico.
@@ -1698,16 +1702,27 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
       }, 200)
 
       // ── RAF (~60fps): interpola displayedPrice → targetPrice e renderiza ─
+      let lastFrameMs = performance.now()
+
       function animate() {
+        const frameNow = performance.now()
+        // Clamp em 100ms: aba em background, GC longo ou stall de rede geram um
+        // dt gigante que teleportaria o preço num salto só.
+        const dt = Math.min(Math.max(frameNow - lastFrameMs, 1), 100)
+        lastFrameMs = frameNow
+
         // Preço LIMPO: interpola suavemente até o tick real. Alimenta o preço
         // exibido e a entrada/saída de operação — NUNCA recebe o tremor cosmético.
-        displayedPrice = displayedPrice + (targetPrice - displayedPrice) * SMOOTH
+        // Suavização exponencial por TEMPO: idêntica em 60Hz, 120Hz ou 144Hz.
+        const kSmooth = 1 - Math.exp(-dt / SMOOTH_TAU_MS)
+        displayedPrice = displayedPrice + (targetPrice - displayedPrice) * kSmooth
         const dp = fmt5(displayedPrice)
 
         // Tremor cosmético (só desenho): random-walk com reversão à média em torno
         // do preço limpo, pra vela "respirar" ao vivo como na Quotex.
         if (liveJitterEnabled) {
-          liveJitter = liveJitter * LIVE_JITTER_DECAY + (Math.random() - 0.5) * LIVE_JITTER_STEP
+          const kDecay = Math.exp(-dt / LIVE_JITTER_TAU_MS)
+          liveJitter = liveJitter * kDecay + (Math.random() - 0.5) * LIVE_JITTER_STEP * (dt / 16.67)
           if (liveJitter >  LIVE_JITTER_MAX) liveJitter =  LIVE_JITTER_MAX
           if (liveJitter < -LIVE_JITTER_MAX) liveJitter = -LIVE_JITTER_MAX
         }
@@ -1757,14 +1772,28 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
         }
         if (livePulseRef.current && y != null) livePulseRef.current.style.top = `${y}px`
 
-        const nowMs = performance.now()
-        if (nowMs - lastStateSyncRef.current > 140) {
-          lastStateSyncRef.current = nowMs
-          setCurrentPrice(dp)
-          setPriceChange(fmt5(dp - entryPrice))
-          setLiveOhlc({ open: candleOpen, high: candleHigh, low: candleLow, close: renderClose })
+        // Aqui estava o "arranhado": cinco setState a ~7Hz forçavam uma
+        // reconciliação completa deste componente (que é grande) no meio da
+        // animação, derrubando frames em intervalos regulares — exatamente o
+        // padrão de travada periódica que aparecia na formação da vela.
+        //
+        // O desenho não depende disto: a série e a etiqueta de preço já são
+        // escritas direto acima, a cada frame. Estes states só alimentam texto
+        // auxiliar, então caem pra ~5Hz e, com update funcional, o React nem
+        // re-renderiza quando o valor não mudou.
+        if (frameNow - lastStateSyncRef.current > 200) {
+          lastStateSyncRef.current = frameNow
+          const pc = fmt5(dp - entryPrice)
+          setCurrentPrice(prev => (prev === dp ? prev : dp))
+          setPriceChange(prev => (prev === pc ? prev : pc))
+          setLiveOhlc(prev => (
+            prev && prev.open === candleOpen && prev.high === candleHigh &&
+            prev.low === candleLow && prev.close === renderClose
+              ? prev
+              : { open: candleOpen, high: candleHigh, low: candleLow, close: renderClose }
+          ))
+          setCandleTimerY(prev => (prev === y ? prev : y))
           onPriceUpdateRef.current?.(dp)
-          setCandleTimerY(y)
         }
 
         rafId = requestAnimationFrame(animate)

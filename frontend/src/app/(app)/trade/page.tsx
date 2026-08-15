@@ -24,6 +24,7 @@ import { MercadoPage } from '@/components/mercado/MercadoPage'
 import { CopyPanel } from '@/components/copy/CopyPanel'
 import { MaisPanel } from '@/components/layout/MaisPanel'
 import { ConfiguracoesPanel, type TradeSettings } from '@/components/layout/ConfiguracoesPanel'
+import { loadTradePrefs, saveTradePrefs, DEFAULT_TRADE_PREFS } from '@/lib/tradePrefs'
 import { DepositoModal } from '@/components/deposito/DepositoModal'
 import { BonusWelcomeModal, type BonusOffer } from '@/components/deposito/BonusWelcomeModal'
 import { supabase } from '@/lib/supabase'
@@ -74,12 +75,15 @@ export default function TradingPage() {
   const [contaInitialTab, setContaInitialTab] = useState<'retirada' | 'minha-conta' | 'operacoes'>('minha-conta')
   const [configOpen, setConfigOpen] = useState(false)
   const [theme, setTheme] = useState<'diurno' | 'crepusculo' | 'noite'>('noite')
-  const [tradeSettings, setTradeSettings] = useState<TradeSettings>({
-    autoScroll: true,
-    oneClickTrade: true,
-    performanceMode: true,
-    shortLabels: true,
-  })
+  // Comeca nos defaults pra bater com o SSR (nao existe localStorage no
+  // servidor) e carrega o que estava salvo logo apos montar. Sem isso,
+  // desmarcar "Rolagem automatica" durava ate o F5.
+  const [tradeSettings, setTradeSettingsState] = useState<TradeSettings>(DEFAULT_TRADE_PREFS)
+  useEffect(() => { setTradeSettingsState(loadTradePrefs()) }, [])
+  const setTradeSettings = useCallback((next: TradeSettings) => {
+    setTradeSettingsState(next)
+    saveTradePrefs(next)
+  }, [])
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('TRADE')
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false)
   const isMobile = useIsMobile()
