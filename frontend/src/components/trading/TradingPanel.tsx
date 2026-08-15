@@ -935,9 +935,13 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
 
       {/* ── Painel de negociação ──────────────────────────────────────── */}
       <section className={cn('flex flex-col', mobile ? '' : 'rounded-xl border border-[#141C28] bg-[#0A101A] pb-4')}>
-      <div className="flex items-center justify-between px-4 pt-3.5">
-        <h3 className="text-[11.5px] font-bold uppercase tracking-[0.11em] text-[#D3DCE8]">Negociação</h3>
-      </div>
+      {/* Título oculto no mobile: os rótulos Tempo/Valor/Lucro já dizem o que é,
+          e a linha inteira só custava altura de gráfico. */}
+      {!mobile && (
+        <div className="flex items-center justify-between px-4 pt-3.5">
+          <h3 className="text-[11.5px] font-bold uppercase tracking-[0.11em] text-[#D3DCE8]">Negociação</h3>
+        </div>
+      )}
 
       {/* Tempo */}
       {/* ── Mobile: Tempo, Valor e Lucro numa linha só ──────────────────────
@@ -945,7 +949,7 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
           importa é ver o gráfico e ajustar rápido antes de entrar. Atalhos de
           investimento e "retorno estimado" saem: o Lucro aqui já dá a leitura. */}
       {mobile && (
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-3 pt-3">
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-3 pt-2.5">
           <div>
             <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7E8DA2]">Tempo</span>
             <div className="flex items-center justify-between rounded-lg border border-[#1B2735] bg-[#0C1320] px-1 py-1">
@@ -1127,7 +1131,7 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
       )}
 
       {/* CALL / PUT buttons — lado a lado no mobile, empilhados no desktop */}
-      <div className={cn('px-3 pb-3 flex gap-2', mobile && !confirmTrade ? 'flex-row' : 'flex-col')}>
+      <div className={cn('flex gap-2 px-3', mobile ? 'pb-2 pt-2.5' : 'pb-3', mobile && !confirmTrade ? 'flex-row' : 'flex-col')}>
         {confirmTrade ? (
           <div className="flex flex-col gap-2">
             <div className="text-center text-xs text-[#7E8DA2] font-semibold py-1">
@@ -1175,7 +1179,7 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               className={cn(
                 'rounded-[10px] border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 flex items-center gap-2 shadow-[0_6px_18px_rgba(27,184,120,0.18)] transition-all duration-200 hover:from-[#20C983] hover:to-[#149E63] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
                 // No mobile divide a linha com o ABAIXO; no desktop ocupa tudo.
-                mobile ? 'flex-1 min-w-0 py-[18px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
+                mobile ? 'flex-1 min-w-0 py-[12px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
               )}
             >
               <ArrowUp size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />
@@ -1196,7 +1200,7 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               title={!marketOpen ? `Mercado fechado · reabre em ${reopenIn}` : ''}
               className={cn(
                 'rounded-[10px] border border-[#E5384F]/35 bg-gradient-to-b from-[#B62B41] to-[#8A1C2C] px-4 flex items-center gap-2 shadow-[0_6px_18px_rgba(182,43,65,0.18)] transition-all duration-200 hover:from-[#C7304A] hover:to-[#991F31] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
-                mobile ? 'flex-1 min-w-0 py-[18px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
+                mobile ? 'flex-1 min-w-0 py-[12px] justify-center text-center' : 'w-full py-[13px] text-left gap-3',
               )}
             >
               <ArrowDown size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />

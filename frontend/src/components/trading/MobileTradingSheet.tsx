@@ -125,7 +125,7 @@ export function MobileTradingSheet({
       <button
         type="button"
         onClick={() => onAssetTap?.()}
-        className="flex shrink-0 items-center gap-2 border-b border-[#16202D] px-4 py-2 active:bg-white/5"
+        className="flex shrink-0 items-center gap-2 border-b border-[#16202D] px-4 py-1.5 active:bg-white/5"
       >
         <FlagPair code1={asset.code1} code2={asset.code2} size={16} />
         <span className="text-[13px] font-bold text-white">{asset.symbol}</span>
@@ -133,7 +133,7 @@ export function MobileTradingSheet({
         <ChevronDown size={12} className="text-[#7E8DA2]" />
       </button>
 
-      <div className="max-h-[46vh] overflow-y-auto">
+      <div className="max-h-[38vh] overflow-y-auto">
         <TradingPanel
           ref={panelRef}
           asset={asset}
