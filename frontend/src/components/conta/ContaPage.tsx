@@ -2,16 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Camera, CheckCircle2, Lock, Globe, Clock, X, ChevronDown, Pencil,
-  AlertCircle, ChevronRight, Landmark, Zap, ChevronLeft, Loader2,
-  CheckCheck, Ban, UserCircle2, User, Calendar, ShieldCheck, Fingerprint,
-  KeyRound, MonitorSmartphone, History, Mail, Bell, MinusCircle, DollarSign,
-  Moon, CalendarDays, TrendingUp, Target, Trophy, Info, Eye, Phone,
-  Shuffle, Building2, Clock4, Headphones,
+  CheckCircle2, X, ChevronDown, AlertCircle, ChevronRight, Zap,
+  ChevronLeft, Loader2, CheckCheck, Ban, UserCircle2, User, Calendar,
+  Mail, Info, Phone, Shuffle, Building2, Clock4,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AnalisePage } from '@/components/analise/AnalisePage'
 import { VerificacaoTab } from '@/components/conta/VerificacaoTab'
+import { SegurancaCard } from '@/components/conta/SegurancaCard'
 import { supabase } from '@/lib/supabase'
 import { secureRpc, secureDb } from '@/lib/secureClient'
 import { notifyEmail } from '@/lib/notifyEmail'
@@ -27,17 +25,6 @@ const CONTA_TABS: { key: ContaTab; label: string }[] = [
   { key: 'verificacao', label: 'Verificação' },
 ]
 
-const FAQS_RETIRADA = [
-  'Como posso retirar dinheiro da conta?',
-  'O que é a verificação de conta?',
-  'Quanto tempo leva para retirar fundos?',
-  'Como entendo que preciso passar pela verificação da conta?',
-  'Qual é o valor mínimo da retirada?',
-  'Quanto tempo leva o processo de verificação?',
-  'Existe alguma taxa para depositar ou retirar fundos da conta?',
-  'Como posso saber se meus dados estão verificados com sucesso?',
-  'Preciso fornecer algum documento para fazer uma retirada?',
-]
 
 const PIX_KEY_TYPES = [
   { value: 'cpf',    label: 'CPF',    icon: User },
@@ -60,15 +47,6 @@ interface Withdrawal {
 
 /* ═══ vx-* helper components ═══ */
 
-function VxToggle({ on: initial }: { on?: boolean }) {
-  const [on, setOn] = useState(!!initial)
-  return (
-    <button type="button" onClick={() => setOn(!on)} className={on ? 'vx-switch-on' : 'vx-switch'}>
-      <span className="vx-switch-knob" style={{ left: on ? 23 : 3 }} />
-    </button>
-  )
-}
-
 function VxField({ label, value, onChange, placeholder, rightLabel, icon, readOnly = false, type = 'text' }: {
   label: string; value: string; onChange?: (v: string) => void; placeholder?: string
   rightLabel?: string; icon?: React.ReactNode; readOnly?: boolean; type?: string
@@ -90,34 +68,6 @@ function VxField({ label, value, onChange, placeholder, rightLabel, icon, readOn
   )
 }
 
-function SecRow({ icon, title, desc, toggle, on, arrow }: {
-  icon: React.ReactNode; title: string; desc: string; toggle?: boolean; on?: boolean; arrow?: boolean
-}) {
-  return (
-    <div className="vx-card flex items-center gap-3 px-4 py-[13px]">
-      <span className="text-[#6C9CF8]">{icon}</span>
-      <span className="min-w-0 flex-1 leading-none">
-        <span className="block text-[13px] font-semibold text-[#EAF1FA]">{title}</span>
-        <span className="vx-sub-sm mt-2 block">{desc}</span>
-      </span>
-      {toggle && <VxToggle on={on} />}
-      {arrow && <ChevronRight size={16} className="text-[#6B7A8E]" />}
-    </div>
-  )
-}
-
-function PrefCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="vx-card flex items-center gap-3 px-4 py-3">
-      <span className="text-[#7A8AA0]">{icon}</span>
-      <span className="min-w-0 flex-1 leading-none">
-        <span className="vx-sub-sm block">{label}</span>
-        <span className="mt-2 block text-[13px] font-semibold text-white">{value}</span>
-      </span>
-      <ChevronDown size={15} className="text-[#7A8AA0]" />
-    </div>
-  )
-}
 
 /* ═══ Minha Conta — Perfil Form (dados reais do Supabase) ═══ */
 function MinhaContaForm() {
@@ -127,6 +77,9 @@ function MinhaContaForm() {
   const [lastName,  setLastName]  = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [cpf,       setCpf]       = useState('')
+  // CPF e data de nascimento sao definitivos: uma vez gravados, viram somente leitura.
+  const [birthLocked, setBirthLocked] = useState(false)
+  const [cpfLocked,   setCpfLocked]   = useState(false)
   const [country,   setCountry]   = useState('Brasil')
   const [address,   setAddress]   = useState('')
   const [loading,   setLoading]   = useState(true)
@@ -151,6 +104,8 @@ function MinhaContaForm() {
       setNickname(p.nickname ?? '')
       setCpf(p.cpf ?? '')
       setBirthDate(p.birth_date ?? '')
+      setCpfLocked(Boolean(p.cpf))
+      setBirthLocked(Boolean(p.birth_date))
       setCountry(p.country ?? 'Brasil')
       setAddress(p.address ?? '')
       setLoading(false)
@@ -217,8 +172,8 @@ function MinhaContaForm() {
           <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-4">
             <VxField label="Nome completo" value={firstName} onChange={setFirstName} placeholder="Seu nome" />
             <VxField label="Sobrenome" value={lastName} onChange={setLastName} placeholder="Seu sobrenome" />
-            <VxField label="Data de nascimento" value={birthDate} onChange={setBirthDate} placeholder="dd/mm/aaaa" icon={<Calendar size={15} />} type="date" />
-            <VxField label="CPF" value={cpf} onChange={setCpf} placeholder="000.000.000-00" />
+            <VxField label="Data de nascimento" value={birthDate} onChange={setBirthDate} placeholder="dd/mm/aaaa" icon={<Calendar size={15} />} type="date" readOnly={birthLocked} />
+            <VxField label="CPF" value={cpf} onChange={setCpf} placeholder="000.000.000-00" readOnly={cpfLocked} />
             <VxField label="E-mail" value={user?.email ?? ''} rightLabel="Verificado" readOnly />
             <div className="vx-field">
               <span className="text-[12px] font-medium text-[#AEBBCB]">País</span>
@@ -233,6 +188,12 @@ function MinhaContaForm() {
             </div>
             <VxField label="Endereço" value={address} onChange={setAddress} placeholder="Rua, número, cidade, estado, CEP" />
           </div>
+
+          {(cpfLocked || birthLocked) && (
+            <p className="vx-sub-sm mt-3">
+              CPF e data de nascimento não podem ser alterados depois de confirmados. Fale com o suporte se precisar corrigir.
+            </p>
+          )}
 
           {msg && (
             <div className={cn('mt-3 text-[12px] font-medium px-3 py-2 rounded-[10px] border',
@@ -562,57 +523,8 @@ function RetiradaTab() {
   return (
     <div className="flex-1 overflow-y-auto p-5">
       <div className="flex items-start gap-4">
-        {/* ── Coluna esquerda: saldo ── */}
-        <div className="vx-col w-[300px] shrink-0">
-          <div className="vx-panel p-5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12.5px] text-[#AEBBCB]">Saldo disponível</span>
-              <Info size={13} className="text-[#6B7A8E]" />
-              <button type="button" className="ml-auto text-[#6C7C92] transition-colors duration-200 hover:text-white">
-                <Eye size={16} />
-              </button>
-            </div>
-            <div className="vx-money mt-3">R$ {fmtBRL(balance)}</div>
-
-            <div className="vx-divider my-5" />
-
-            <div className="text-[12.5px] text-[#AEBBCB]">Disponível para retirada</div>
-            <div className="mt-3 text-[19px] font-bold text-white">R$ {fmtBRL(availableForWithdrawal)}</div>
-            {bonusStatus?.active && (
-              <div className="text-[10px] text-[#7E8DA2] mt-1">
-                R$ {fmtBRL(Number(bonusStatus.bonus_balance))} de bônus em rollover
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-col gap-3">
-              <div className="vx-card-p flex items-center gap-3">
-                <span className="vx-ibox-green"><Landmark size={17} /></span>
-                <span className="leading-none">
-                  <span className="vx-sub-sm block">Retirada mínima</span>
-                  <span className="mt-2 block text-[14px] font-bold text-white">R$ {fmtBRL(limits.min)}</span>
-                </span>
-              </div>
-              <div className="vx-card-p flex items-center gap-3">
-                <span className="vx-ibox-amber"><Zap size={17} /></span>
-                <span className="leading-none">
-                  <span className="vx-sub-sm block">Processamento</span>
-                  <span className="mt-2 block text-[14px] font-bold text-white">Até 4h úteis</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="vx-panel flex items-start gap-3 p-4">
-            <ShieldCheck size={19} className="mt-[2px] text-[#4B8CF5]" />
-            <span>
-              <span className="block text-[13px] font-semibold text-white">Ambiente seguro</span>
-              <span className="vx-sub mt-2 block">Suas transações são protegidas com criptografia de nível bancário.</span>
-            </span>
-          </div>
-        </div>
-
-        {/* ── Coluna central: formulário + histórico ── */}
-        <div className="vx-col min-w-0 flex-1">
+        {/* ── Coluna única: formulário + histórico ── */}
+        <div className="vx-col w-full shrink-0">
           <div className="vx-panel p-5">
             <h2 className="vx-h3 text-[16px]">Solicitar retirada via PIX</h2>
             <p className="vx-sub mt-2.5">Escolha o tipo de chave PIX e informe os dados para retirada.</p>
@@ -762,33 +674,6 @@ function RetiradaTab() {
             </div>
           </div>
         </div>
-
-        {/* ── Coluna direita: FAQ ── */}
-        <div className="vx-col w-[440px] shrink-0">
-          <div className="vx-panel p-5">
-            <h3 className="vx-h3 text-[16px]">Perguntas frequentes</h3>
-            <div className="mt-4 flex flex-col">
-              {FAQS_RETIRADA.map((q, i) => (
-                <button key={q} type="button"
-                  className={cn('flex items-center gap-3 py-[13px] text-left transition-colors duration-200 hover:text-white',
-                    i > 0 && 'border-t border-[#141C28]'
-                  )}>
-                  <span className="min-w-0 flex-1 text-[12.5px] text-[#C3CFDD]">{q}</span>
-                  <ChevronRight size={15} className="text-[#6B7A8E]" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="vx-panel flex items-center gap-3 p-4">
-            <span className="vx-ibox"><Headphones size={17} /></span>
-            <span className="min-w-0 flex-1 leading-none">
-              <span className="block text-[13px] font-semibold text-white">Precisa de ajuda?</span>
-              <span className="vx-sub-sm mt-2 block">Nossa equipe está pronta para ajudar você.</span>
-            </span>
-            <button type="button" className="vx-btn-ghost px-4 py-[9px] text-[12px]">Abrir chat</button>
-          </div>
-        </div>
       </div>
     </div>
   )
@@ -815,17 +700,19 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
         ))}
       </div>
 
-      {/* Balance bar */}
-      <div className="flex items-center justify-end gap-6 px-5 py-3 border-b border-[#16202D] bg-[#0C131F] flex-shrink-0 overflow-x-auto">
-        <div className="text-right flex-shrink-0">
-          <div className="text-[11px] text-[#7E8DA2]">Disponível para retirada</div>
-          <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
+      {/* Balance bar — oculta em Minha conta e Verificação, que já não repetem saldo */}
+      {activeTab !== 'minha-conta' && activeTab !== 'verificacao' && (
+        <div className="flex items-center justify-end gap-6 px-5 py-3 border-b border-[#16202D] bg-[#0C131F] flex-shrink-0 overflow-x-auto">
+          <div className="text-right flex-shrink-0">
+            <div className="text-[11px] text-[#7E8DA2]">Disponível para retirada</div>
+            <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-[11px] text-[#7E8DA2]">Na conta</div>
+            <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
+          </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <div className="text-[11px] text-[#7E8DA2]">Na conta</div>
-          <div className="text-[14px] font-bold text-white mt-0.5">R$ {fmtBRL(barBalance)}</div>
-        </div>
-      </div>
+      )}
 
       {/* Tab content */}
       {activeTab === 'retirada' && <RetiradaTab />}
@@ -839,81 +726,11 @@ export function ContaPage({ initialTab = 'minha-conta' }: { initialTab?: ContaTa
             {/* ── Coluna esquerda ── */}
             <div className="vx-col">
               <MinhaContaForm />
-
-              {/* Preferências da conta */}
-              <div className="vx-panel p-5">
-                <h3 className="vx-h3 text-[15px]">Preferências da conta</h3>
-                <p className="vx-sub mt-2">Personalize sua experiência na plataforma.</p>
-                <div className="mt-4 grid grid-cols-4 gap-3">
-                  <PrefCard icon={<Globe size={17} />} label="Idioma" value="Português" />
-                  <PrefCard icon={<Clock size={17} />} label="Fuso horário" value="(UTC-03:00) Brasília" />
-                  <PrefCard icon={<DollarSign size={17} />} label="Moeda" value="BRL (R$)" />
-                  <PrefCard icon={<Moon size={17} />} label="Tema" value="Escuro" />
-                </div>
-              </div>
-
-              {/* Resumo da conta */}
-              <div className="vx-panel p-5">
-                <div className="flex items-start">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="vx-h3 text-[15px]">Resumo da conta</h3>
-                    <p className="vx-sub mt-2">Informações gerais da sua conta e atividade.</p>
-                  </div>
-                  <button type="button" className="vx-link">Ver estatísticas completas <ChevronRight size={14} /></button>
-                </div>
-                <div className="mt-5 flex items-center gap-4 border-t border-[#16202D] pt-5">
-                  {[
-                    { icon: <CalendarDays size={17} />, label: 'Conta criada em', value: barUser?.created_at ? new Date(barUser.created_at).toLocaleDateString('pt-BR') : '—' },
-                    { icon: <Clock size={17} />, label: 'Último acesso', value: barUser?.last_sign_in_at ? new Date(barUser.last_sign_in_at).toLocaleDateString('pt-BR') : '—' },
-                    { icon: <DollarSign size={17} />, label: 'Saldo atual', value: `R$ ${fmtBRL(barBalance)}` },
-                  ].map(s => (
-                    <div key={s.label} className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <span className="text-[#7A8AA0]">{s.icon}</span>
-                      <span className="min-w-0 leading-none">
-                        <span className="vx-sub-sm block truncate">{s.label}</span>
-                        <span className="mt-2 block truncate text-[13px] font-semibold text-white">{s.value}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* ── Coluna direita ── */}
             <div className="vx-col">
-              {/* Segurança da conta */}
-              <div className="vx-panel p-5">
-                <div className="flex items-start gap-3">
-                  <span className="vx-ibox-blue"><ShieldCheck size={18} /></span>
-                  <div>
-                    <h3 className="vx-h3 text-[15px]">Segurança da conta</h3>
-                    <p className="vx-sub mt-2">Proteja sua conta e gerencie o acesso.</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-col gap-2.5">
-                  <SecRow icon={<ShieldCheck size={18} />} title="Verificação em duas etapas (2FA)" desc="Proteja sua conta com autenticação de dois fatores." toggle on />
-                  <SecRow icon={<Fingerprint size={18} />} title="Login com biometria" desc="Use impressão digital ou reconhecimento facial." toggle />
-                  <SecRow icon={<KeyRound size={18} />} title="Alterar senha" desc="Última alteração: —" arrow />
-                  <SecRow icon={<MonitorSmartphone size={18} />} title="Sessões ativas" desc="Gerencie dispositivos conectados à sua conta." arrow />
-                  <SecRow icon={<History size={18} />} title="Histórico de acessos" desc="Veja o histórico de login na sua conta." arrow />
-                </div>
-              </div>
-
-              {/* Contato e notificações */}
-              <div className="vx-panel p-5">
-                <div className="flex items-start gap-3">
-                  <span className="vx-ibox-blue"><Mail size={18} /></span>
-                  <div>
-                    <h3 className="vx-h3 text-[15px]">Contato e notificações</h3>
-                    <p className="vx-sub mt-2">Gerencie suas preferências de comunicação.</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-col gap-2.5">
-                  <SecRow icon={<Mail size={18} />} title="Receber por e-mail" desc="Novidades, atualizações e relatórios." toggle on />
-                  <SecRow icon={<Bell size={18} />} title="Notificações push" desc="Alertas importantes em tempo real." toggle on />
-                  <SecRow icon={<MinusCircle size={18} />} title="SMS de segurança" desc="Receber códigos e alertas por SMS." toggle />
-                </div>
-              </div>
+              <SegurancaCard />
             </div>
           </div>
         </div>

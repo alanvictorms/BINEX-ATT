@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import {
   ShieldCheck, ShieldAlert, Clock, Upload, X, Loader2, CheckCircle2, XCircle,
   FileImage, Camera, RefreshCw, AlertCircle, Check, IdCard, ScanFace,
-  UploadCloud, Lock, MessageSquare, ExternalLink, FileCheck2,
+  UploadCloud, Lock, FileCheck2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,8 +39,6 @@ const STATUS = [
 
 export function VerificacaoTab() {
   const user = useAuthStore(s => s.user)
-  const account = useAuthStore(s => { const u = s.user; return u?.accounts?.find(a => a.type === 'REAL') })
-  const balance = account ? parseFloat(account.balance) : 0
 
   const [latest, setLatest] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
@@ -162,11 +160,6 @@ export function VerificacaoTab() {
             <div>
               <h3 className="vx-h3 text-[15px]">Seus dados estão protegidos</h3>
               <div className="mt-4 flex items-start gap-4"><Lock size={22} className="mt-1 shrink-0 text-[#7A8AA0]" /><p className="vx-sub">Suas informações são criptografadas e utilizadas apenas para verificação. Não compartilhamos seus dados com terceiros.</p></div>
-              <div className="mt-5 flex items-center gap-3">
-                {[['Criptografia', 'SSL 256-bit'], ['Conformidade', 'LGPD'], ['Armazenamento', 'Seguro']].map(([a, b]) => (
-                  <span key={a} className="flex items-center gap-2.5"><span className="vx-ibox-green h-[30px] w-[30px]"><Lock size={13} /></span><span className="leading-none"><span className="block text-[11.5px] font-semibold text-[#EAF1FA]">{a}</span><span className="vx-sub-sm mt-1.5 block">{b}</span></span></span>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -182,17 +175,6 @@ export function VerificacaoTab() {
         {/* Right column */}
         <div className="vx-col w-[290px] shrink-0">
           <div className="vx-panel p-5">
-            <div className="vx-sub">Disponível para retirada</div>
-            <div className="mt-3 text-[19px] font-bold text-white">R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-            <div className="vx-sub mt-6">Na conta</div>
-            <div className="mt-3 text-[19px] font-bold text-white">R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          </div>
-          <div className="vx-panel p-5">
-            <h3 className="vx-h3 text-[16px]">Precisa de ajuda?</h3>
-            <p className="vx-sub mt-3">Nossa equipe de suporte está disponível 24/7.</p>
-            <button type="button" className="vx-btn-outline-blue mt-4 w-full"><MessageSquare size={16} /> Abrir chat ao vivo</button>
-          </div>
-          <div className="vx-panel p-5">
             <h3 className="vx-h3 text-[16px]">Status da verificação</h3>
             <div className="mt-4 flex flex-col gap-4">
               {STATUS.map(s => (
@@ -202,9 +184,6 @@ export function VerificacaoTab() {
                 </div>
               ))}
             </div>
-            <div className="vx-divider my-5" />
-            <p className="vx-sub">Tem alguma dúvida sobre a verificação?</p>
-            <button type="button" className="vx-link mt-3 text-[13px]">Ver perguntas frequentes <ExternalLink size={13} /></button>
           </div>
         </div>
       </div>
