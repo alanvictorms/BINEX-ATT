@@ -87,24 +87,43 @@ export async function otcPublicRoutes(app: FastifyInstance) {
   // Postgres (autoritativo). Evita o cenario em que Redis esta esparso (engine
   // com problema ou recem-restartado) e o chart recebe so 5-10 candles em vez
   // dos 300 que o Postgres tem.
+  //
+  // Query: tf, limit (max 500) e o opcional `before` pra paginar pra tras.
   app.get('/:symbol/candles', async (req, reply) => {
     const { symbol } = req.params as { symbol: string }
-    const q = req.query as { tf?: string; limit?: string }
+    const q = req.query as { tf?: string; limit?: string; before?: string }
     const tf    = parseInt(q.tf    ?? '60', 10)
     const limit = Math.min(parseInt(q.limit ?? '200', 10), 500)
     if (![5, 15, 60, 300].includes(tf)) return reply.status(400).send({ error: 'INVALID_TF' })
 
-    const MIN_REDIS_COVERAGE = Math.ceil(limit / 2)
-    const raw = await redis.zrevrange(KEYS.candleBuffer(symbol, tf), 0, limit - 1)
-    if (raw.length >= MIN_REDIS_COVERAGE) {
-      return { symbol, tf, candles: raw.map(s => JSON.parse(s)).reverse() }
+    // `before` (epoch em segundos) pagina pra tras: devolve os `limit` candles
+    // imediatamente ANTERIORES a esse instante. E o que deixa o chart alcancar
+    // o historico inteiro (ver backfill-otc-from-deriv.ts) em vez de so a cauda.
+    //
+    // Sem `before` o caminho e exatamente o de antes — Redis quente com fallback
+    // Postgres. Com `before`, o Redis e ignorado de proposito: o buffer dele so
+    // guarda a cauda recente, entao pra qualquer janela antiga ele nunca teria
+    // os candles e a checagem de cobertura so gastaria uma ida a rede.
+    const beforeSec = q.before ? parseInt(q.before, 10) : NaN
+    const before = Number.isFinite(beforeSec) && beforeSec > 0 ? new Date(beforeSec * 1000) : null
+
+    if (!before) {
+      const MIN_REDIS_COVERAGE = Math.ceil(limit / 2)
+      const raw = await redis.zrevrange(KEYS.candleBuffer(symbol, tf), 0, limit - 1)
+      if (raw.length >= MIN_REDIS_COVERAGE) {
+        return { symbol, tf, candles: raw.map(s => JSON.parse(s)).reverse() }
+      }
     }
 
-    // Redis esparso/vazio -> Postgres autoritativo
+    // Redis esparso/vazio, ou paginacao historica -> Postgres autoritativo
     const asset = await prisma.otcAsset.findUnique({ where: { symbol } })
     if (!asset) return reply.status(404).send({ error: 'ASSET_NOT_FOUND' })
     const rows = await prisma.otcCandle.findMany({
-      where:   { assetId: asset.id, timeframe: tf },
+      where: {
+        assetId: asset.id,
+        timeframe: tf,
+        ...(before ? { openTime: { lt: before } } : {}),
+      },
       orderBy: { openTime: 'desc' },
       take:    limit,
     })
