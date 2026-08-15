@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import {
   Users, UserPlus, Search, Eye, Edit2, Ban, RefreshCw, Trash2,
   RotateCw, Loader2, TrendingUp, DollarSign, FlaskConical,
-  ArrowUp, ArrowDown, ArrowUpDown,
+  ArrowUp, ArrowDown, ArrowUpDown, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserDetailsModal } from '@/components/admin/UserDetailsModal'
@@ -206,6 +206,30 @@ export default function UsuariosAdminPage() {
     }
   }
 
+  // Promove/rebaixa admin. O guard de "nao remover o proprio acesso" mora na
+  // RPC (admin_set_admin) — aqui so o aviso, porque um clique errado aqui
+  // trancaria a pessoa pra fora do painel.
+  async function handleToggleAdmin(u: Row) {
+    const msg = u.is_admin
+      ? `Remover o acesso de administrador de ${u.name}?\n\nA conta continua existindo e operando normalmente — só perde o painel admin.`
+      : `Tornar ${u.name} um ADMINISTRADOR?\n\nPassa a ter acesso total ao painel: usuários, saques, configurações e provedores.`
+    if (!confirm(msg)) return
+
+    setActionBusy(u.id)
+    try {
+      const { error } = await supabase.rpc('admin_set_admin', {
+        p_user_id:  u.id,
+        p_is_admin: !u.is_admin,
+      })
+      if (error) throw error
+      await loadUsers()
+    } catch (e: any) {
+      alert('Erro: ' + (e.message ?? 'desconhecido'))
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
   const loadStats = useCallback(async () => {
     const { data, error } = await supabase.rpc('admin_user_stats')
     if (!error && data) setStats(data as Stats)
@@ -394,6 +418,13 @@ export default function UsuariosAdminPage() {
                         title={u.is_internal ? 'Voltar a contar nas métricas' : 'Marcar como conta interna (some das métricas)'}
                       >
                         <FlaskConical size={14} className={u.is_internal ? 'text-amber-400' : ''} />
+                      </ActionBtn>
+                      <ActionBtn
+                        onClick={() => handleToggleAdmin(u)}
+                        disabled={actionBusy === u.id}
+                        title={u.is_admin ? 'Remover acesso de administrador' : 'Tornar administrador'}
+                      >
+                        <ShieldCheck size={14} className={u.is_admin ? 'text-[#6C9CF8]' : ''} />
                       </ActionBtn>
                       <ActionBtn
                         onClick={() => handleDelete(u)}

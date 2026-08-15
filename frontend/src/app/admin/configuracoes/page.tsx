@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Loader2, RefreshCw, Save, Check, ArrowDownCircle, ArrowUpCircle, ShieldAlert } from 'lucide-react'
+import { Loader2, RefreshCw, Save, Check, ArrowDownCircle, ArrowUpCircle, ShieldAlert, KeyRound, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Cfg = Record<string, any>
@@ -53,6 +53,8 @@ export default function ConfiguracoesPage() {
   const num = (k: string, fallback = 0) => Number(cfg[k] ?? fallback)
   const setNum = (k: string, v: string) => setCfg(c => ({ ...c, [k]: v === '' ? 0 : Number(v) }))
   const setBool = (k: string, v: boolean) => setCfg(c => ({ ...c, [k]: v }))
+  const str = (k: string) => (typeof cfg[k] === 'string' ? cfg[k] as string : '')
+  const setStr = (k: string, v: string) => setCfg(c => ({ ...c, [k]: v }))
 
   if (loading) {
     return <div className="p-6 min-h-full flex items-center justify-center"><Loader2 className="animate-spin text-[#7E8DA2]" size={28} /></div>
@@ -117,7 +119,83 @@ export default function ConfiguracoesPage() {
           onChange={v => setBool('copyTradeEnabled', v)}
         />
       </Section>
+
+      {/* Credenciais BSPAY */}
+      <Section
+        icon={<KeyRound size={15} />}
+        title="BSPAY"
+        desc="Credenciais do provedor de PIX (depósito e saque). Ficam legíveis por qualquer admin."
+      >
+        <div className="grid grid-cols-1 gap-4">
+          <Text
+            label="Base URL"
+            value={str('bspayBaseUrl')}
+            placeholder="https://api.bspay.co"
+            onChange={v => setStr('bspayBaseUrl', v)}
+          />
+          <Text
+            label="Client ID"
+            value={str('bspayClientId')}
+            placeholder="ID fornecido pela BSPAY"
+            onChange={v => setStr('bspayClientId', v)}
+          />
+          <Text
+            label="Client Secret"
+            value={str('bspayClientSecret')}
+            placeholder="••••••••"
+            secret
+            onChange={v => setStr('bspayClientSecret', v)}
+          />
+          <Text
+            label="Webhook Secret"
+            value={str('bspayWebhookSecret')}
+            placeholder="••••••••"
+            secret
+            hint="Usado para validar a assinatura dos callbacks de pagamento."
+            onChange={v => setStr('bspayWebhookSecret', v)}
+          />
+        </div>
+      </Section>
     </div>
+  )
+}
+
+/** Campo de texto. `secret` esconde o valor mas permite revelar — digitar uma
+ *  credencial às cegas é como a maioria dos erros de configuração acontece. */
+function Text({ label, value, onChange, placeholder, hint, secret }: {
+  label: string; value: string; onChange: (v: string) => void
+  placeholder?: string; hint?: string; secret?: boolean
+}) {
+  const [show, setShow] = useState(false)
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-semibold text-[#9ca3af]">{label}</span>
+      <span className="relative block">
+        <input
+          type={secret && !show ? 'password' : 'text'}
+          value={value}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={e => onChange(e.target.value)}
+          className={cn(
+            'w-full rounded-xl border border-[#1e2433] bg-[#0d1117] px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-[#2E6BE6]',
+            secret && 'pr-11 font-mono',
+          )}
+        />
+        {secret && (
+          <button
+            type="button"
+            onClick={() => setShow(s => !s)}
+            aria-label={show ? 'Ocultar' : 'Mostrar'}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#6b7280] transition-colors hover:text-white"
+          >
+            {show ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        )}
+      </span>
+      {hint && <span className="mt-1.5 block text-[11px] text-[#6b7280]">{hint}</span>}
+    </label>
   )
 }
 
