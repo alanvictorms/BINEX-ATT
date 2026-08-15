@@ -89,6 +89,8 @@ export default function TradingPage() {
   }, [])
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('TRADE')
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false)
+  // Drawer de Posições/Histórico do mobile, controlado pela barra inferior.
+  const [positionsDrawer, setPositionsDrawer] = useState<'operacoes' | 'historico' | null>(null)
   const isMobile = useIsMobile()
   const isPhoneLandscape = useIsPhoneLandscape()
   const [activeTrades, setActiveTrades] = useState<ActiveTrade[]>([])
@@ -510,20 +512,26 @@ export default function TradingPage() {
             livePriceRef={livePriceRef}
             showResultPopup={isMobile === true}
             onAssetTap={() => setAssetSelectorOpen(true)}
+            positionsDrawer={positionsDrawer}
+            onPositionsDrawerClose={() => setPositionsDrawer(null)}
           />
         )}
 
         {/* Mobile bottom navigation — oculto em paisagem */}
         {!isPhoneLandscape && (
           <MobileNav
-            active={depositoOpen ? 'DEPOSITO' : null}
+            active={
+              depositoOpen ? 'DEPOSITO'
+                : positionsDrawer === 'operacoes' ? 'POSICOES'
+                : positionsDrawer === 'historico' ? 'HISTORICO'
+                : null
+            }
             onAction={action => {
               if (action === 'DEPOSITO') { setDepositoOpen(true); return }
-              // Posições e Histórico ainda abrem as telas existentes de Conta.
-              // A apresentação em drawer depende de extrair esses blocos do
-              // MobileTradingSheet, que é o próximo passo.
-              setContaInitialTab(action === 'POSICOES' ? 'operacoes' : 'transacoes')
-              setSidebarTab('CONTA')
+              const tab = action === 'POSICOES' ? 'operacoes' : 'historico'
+              // Tocar de novo no mesmo item fecha — comportamento esperado
+              // numa barra de navegação que abre drawer.
+              setPositionsDrawer(cur => (cur === tab ? null : tab))
             }}
           />
         )}

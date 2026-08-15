@@ -2077,8 +2077,10 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
     <div className="flex min-w-0 flex-1 flex-col gap-3 min-h-0">
     <section className="flex-1 flex flex-col min-h-0 bg-[#0A101A] relative overflow-hidden rounded-xl border border-[#141C28]" onClick={() => { setTfOpen(false); setChartTypeOpen(false) }} onKeyDown={() => {}}>
 
-      {/* Cabecalho do ativo + OHLC da vela */}
-      <div className="absolute top-3 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+      {/* Cabecalho do ativo + OHLC da vela.
+          Oculto no mobile: o mesmo par/payout ja aparece na linha do ativo do
+          painel de negociacao, e aqui so roubava altura util do grafico. */}
+      <div className="absolute top-3 left-4 z-10 hidden flex-col gap-2 pointer-events-none md:flex">
         <div className="flex items-center gap-3">
           <FlagPair code1={asset.code1} code2={asset.code2} size={28} />
           <div className="flex flex-col gap-[7px]">

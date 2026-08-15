@@ -33,6 +33,15 @@ interface TradingPanelProps {
   showResultPopup?: boolean
   /** Abre a página de Conta → Operações */
   onVerTodasPosicoes?: () => void
+  /**
+   * Mobile: transforma a seção Posições/Histórico num drawer inferior
+   * controlado de fora (pela barra inferior). `null` esconde a seção.
+   *
+   * É prop em vez de um segundo TradingPanel de propósito: montar outra
+   * instância duplicaria timers de operação e estado de liquidação.
+   */
+  positionsDrawer?: 'operacoes' | 'historico' | null
+  onPositionsDrawerClose?: () => void
 }
 
 export interface TradingPanelHandle {
@@ -202,7 +211,7 @@ function TradeItem({ trade, shortLabels, currentPrice, onDoubleUp, onEarlyClose 
   )
 }
 
-export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(function TradingPanel({ asset, oneClickTrade = true, shortLabels = true, mobile = false, accountId, onTradeOpened, onTradeExpired, livePrice, livePriceRef: externalPriceRef, hidden = false, showResultPopup = true, onVerTodasPosicoes }, ref) {
+export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(function TradingPanel({ asset, oneClickTrade = true, shortLabels = true, mobile = false, accountId, onTradeOpened, onTradeExpired, livePrice, livePriceRef: externalPriceRef, hidden = false, showResultPopup = true, onVerTodasPosicoes, positionsDrawer = null, onPositionsDrawerClose }, ref) {
   // ─── Studio Mode (cosmetico, apenas owner) ───────────────────────────
   const studioEnabled            = useStudioMode(s => s.enabled)
   const studioHideLosses         = useStudioMode(s => s.hideLosses)
@@ -244,6 +253,12 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
   const [openTrades, setOpenTrades] = useState<OpenTrade[]>([])
   const [confirmTrade, setConfirmTrade] = useState<'CALL' | 'PUT' | null>(null)
   const [activeTab, setActiveTab] = useState<'operacoes' | 'historico' | 'pedidos'>('operacoes')
+
+  // Abrir o drawer pela barra inferior ja escolhe a aba correspondente. Dentro
+  // dele as abas seguem clicaveis normalmente.
+  useEffect(() => {
+    if (positionsDrawer) setActiveTab(positionsDrawer)
+  }, [positionsDrawer])
   const [placing, setPlacing] = useState(false)
   const [tradeError, setTradeError] = useState('')
   const [tradeResult, setTradeResult] = useState<{ direction: 'CALL' | 'PUT'; amount: number; profit: number; won: boolean; draw?: boolean } | null>(null)
@@ -1090,12 +1105,20 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               onMouseLeave={() => window.dispatchEvent(new CustomEvent('vx-trade-hover', { detail: null }))}
               disabled={placing || livePrice == null || !marketOpen}
               title={!marketOpen ? `Mercado fechado · reabre em ${reopenIn}` : ''}
-              className="w-full rounded-[10px] border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 py-[13px] flex items-center gap-3 text-left shadow-[0_6px_18px_rgba(27,184,120,0.18)] transition-all duration-200 hover:from-[#20C983] hover:to-[#149E63] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(
+                'w-full rounded-[10px] border border-[#2BD68F]/40 bg-gradient-to-b from-[#1BB878] to-[#12915B] px-4 flex items-center gap-3 shadow-[0_6px_18px_rgba(27,184,120,0.18)] transition-all duration-200 hover:from-[#20C983] hover:to-[#149E63] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
+                // No mobile o botão é o alvo principal do dedo — mais alto e centrado.
+                mobile ? 'py-[18px] justify-center text-center' : 'py-[13px] text-left',
+              )}
             >
-              <ArrowUp size={22} strokeWidth={2.4} className="text-white" />
-              <span className="flex flex-col leading-none">
-                <span className="text-[14px] font-bold uppercase tracking-[0.06em] text-white">Compra</span>
-                <span className="mt-[5px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/70">Call</span>
+              <ArrowUp size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />
+              <span className={cn('flex leading-none', mobile ? 'items-center' : 'flex-col')}>
+                <span className={cn('font-bold uppercase tracking-[0.06em] text-white', mobile ? 'text-[16px]' : 'text-[14px]')}>
+                  {mobile ? 'Acima' : 'Compra'}
+                </span>
+                {!mobile && (
+                  <span className="mt-[5px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/70">Call</span>
+                )}
               </span>
             </button>
             <button
@@ -1104,12 +1127,19 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
               onMouseLeave={() => window.dispatchEvent(new CustomEvent('vx-trade-hover', { detail: null }))}
               disabled={placing || livePrice == null || !marketOpen}
               title={!marketOpen ? `Mercado fechado · reabre em ${reopenIn}` : ''}
-              className="w-full rounded-[10px] border border-[#E5384F]/35 bg-gradient-to-b from-[#B62B41] to-[#8A1C2C] px-4 py-[13px] flex items-center gap-3 text-left shadow-[0_6px_18px_rgba(182,43,65,0.18)] transition-all duration-200 hover:from-[#C7304A] hover:to-[#991F31] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(
+                'w-full rounded-[10px] border border-[#E5384F]/35 bg-gradient-to-b from-[#B62B41] to-[#8A1C2C] px-4 flex items-center gap-3 shadow-[0_6px_18px_rgba(182,43,65,0.18)] transition-all duration-200 hover:from-[#C7304A] hover:to-[#991F31] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
+                mobile ? 'py-[18px] justify-center text-center' : 'py-[13px] text-left',
+              )}
             >
-              <ArrowDown size={22} strokeWidth={2.4} className="text-white" />
-              <span className="flex flex-col leading-none">
-                <span className="text-[14px] font-bold uppercase tracking-[0.06em] text-white">Venda</span>
-                <span className="mt-[5px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/70">Put</span>
+              <ArrowDown size={mobile ? 24 : 22} strokeWidth={2.4} className="text-white" />
+              <span className={cn('flex leading-none', mobile ? 'items-center' : 'flex-col')}>
+                <span className={cn('font-bold uppercase tracking-[0.06em] text-white', mobile ? 'text-[16px]' : 'text-[14px]')}>
+                  {mobile ? 'Abaixo' : 'Venda'}
+                </span>
+                {!mobile && (
+                  <span className="mt-[5px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/70">Put</span>
+                )}
               </span>
             </button>
             {tradeError && <p className="text-red-400 text-xs text-center mt-1">{tradeError}</p>}
@@ -1120,10 +1150,31 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
       </section>
 
       {/* ── Posições / Histórico ──────────────────────────────────────── */}
+      {/* No mobile vira drawer: fundo clicável só existe quando está aberto. */}
+      {mobile && positionsDrawer && (
+        <div className="fixed inset-0 z-40 bg-black/50" onClick={() => onPositionsDrawerClose?.()} />
+      )}
       <section className={cn(
-        'flex min-h-0 flex-1 flex-col overflow-hidden',
-        mobile ? '' : 'rounded-xl border border-[#141C28] bg-[#0A101A]',
+        'flex min-h-0 flex-col overflow-hidden',
+        !mobile && 'flex-1 rounded-xl border border-[#141C28] bg-[#0A101A]',
+        // Mobile sem drawer aberto: some. O painel fixo mostra só Tempo, Valor
+        // e os botões — que é o que se usa a cada operação.
+        mobile && !positionsDrawer && 'hidden',
+        mobile && positionsDrawer &&
+          'vx-drawer-up fixed inset-x-0 bottom-0 z-50 max-h-[72vh] flex-1 rounded-t-2xl border-t border-[#1B2735] bg-[#0C131F] shadow-[0_-20px_50px_rgba(0,0,0,0.6)]',
       )}>
+      {mobile && positionsDrawer && (
+        <div className="flex shrink-0 items-center justify-between px-4 pt-3">
+          <span className="h-1 w-9 rounded-full bg-[#2A3A4D]" aria-hidden="true" />
+          <button
+            onClick={() => onPositionsDrawerClose?.()}
+            aria-label="Fechar"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7E8DA2] transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       <div className="flex border-b border-[#141C28] flex-shrink-0">
         <button
           data-testid="tab-posicoes"

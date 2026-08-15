@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
-import { ChevronUp, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react'
+import React, { useRef } from 'react'
+import { ChevronDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { type Asset, type ActiveTrade } from '@/lib/mockData'
 import { FlagPair } from '@/components/ui/FlagPair'
 import { TradingPanel, type TradingPanelHandle } from './TradingPanel'
-import { cn } from '@/lib/utils'
 import { useIsPhoneLandscape } from '@/lib/useIsMobile'
 
 interface MobileTradingSheetProps {
@@ -21,6 +20,9 @@ interface MobileTradingSheetProps {
   onAssetTap?: () => void
   /** Repassado ao TradingPanel: só a layout ativa mostra o popup de resultado */
   showResultPopup?: boolean
+  /** Drawer de Posições/Histórico, controlado pela barra inferior. */
+  positionsDrawer?: 'operacoes' | 'historico' | null
+  onPositionsDrawerClose?: () => void
 }
 
 export function MobileTradingSheet({
@@ -34,48 +36,11 @@ export function MobileTradingSheet({
   livePriceRef,
   onAssetTap,
   showResultPopup = true,
+  positionsDrawer = null,
+  onPositionsDrawerClose,
 }: MobileTradingSheetProps) {
-  const [expanded, setExpanded] = useState(false)
   const panelRef = useRef<TradingPanelHandle>(null)
   const isLandscape = useIsPhoneLandscape()
-
-  // ── Drag state ────────────────────────────────────────────────────────────
-  // Altura do sheet enquanto o usuário arrasta — `null` = usa classes Tailwind
-  // (84px colapsado / 72vh expandido). Setamos número durante o drag pra seguir o dedo.
-  const [dragHeight, setDragHeight] = useState<number | null>(null)
-  const dragRef = useRef<{ startY: number; startHeight: number; pointerId: number } | null>(null)
-
-  function collapsedPx() { return 84 }
-  function expandedPx() { return Math.round(window.innerHeight * 0.72) }
-
-  function onHandlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    // Só arraste com dedo/caneta — clique de mouse continua usando onClick
-    if (e.pointerType === 'mouse') return
-    const startHeight = expanded ? expandedPx() : collapsedPx()
-    dragRef.current = { startY: e.clientY, startHeight, pointerId: e.pointerId }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    setDragHeight(startHeight)
-  }
-
-  function onHandlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const d = dragRef.current
-    if (!d || e.pointerId !== d.pointerId) return
-    const delta = d.startY - e.clientY // arrasta pra cima = positivo
-    const max = Math.round(window.innerHeight * 0.9)
-    const next = Math.max(collapsedPx(), Math.min(max, d.startHeight + delta))
-    setDragHeight(next)
-  }
-
-  function onHandlePointerEnd(e: React.PointerEvent<HTMLDivElement>) {
-    const d = dragRef.current
-    if (!d || e.pointerId !== d.pointerId) return
-    const finalHeight = dragHeight ?? d.startHeight
-    // Snap: se passou de 40% da altura expandida, abre; caso contrário fecha
-    const threshold = expandedPx() * 0.4
-    setExpanded(finalHeight > threshold)
-    setDragHeight(null)
-    dragRef.current = null
-  }
 
   function quickTrade(direction: 'CALL' | 'PUT') {
     panelRef.current?.placeTrade(direction)
@@ -105,7 +70,7 @@ export function MobileTradingSheet({
           />
         </div>
 
-        {/* Chip de ativo no canto superior esquerdo (substitui o handle do sheet em paisagem) */}
+        {/* Chip de ativo no canto superior esquerdo */}
         <button
           type="button"
           onClick={() => onAssetTap?.()}
@@ -143,89 +108,32 @@ export function MobileTradingSheet({
     )
   }
 
-  // ── Portrait: sheet tradicional ───────────────────────────────────────────
-  const dragging = dragHeight !== null
+  // ── Portrait: painel fixo, sem sheet ──────────────────────────────────────
+  //
+  // Antes isto era um sheet arrastável: colapsado mostrava só dois botões de
+  // atalho, e "Negociar" subia uma janela de 72vh com o painel real. Ou seja,
+  // tempo e investimento — os dois campos que se ajusta a cada operação —
+  // ficavam escondidos atrás de um toque extra, e o atalho colapsado duplicava
+  // os botões de compra/venda que já existem dentro do painel.
+  //
+  // Agora o TradingPanel fica sempre visível: Tempo, Valor e Lucro aparecem
+  // direto acima dos botões, sem janela nenhuma pra abrir.
   return (
-    <div
-      className={cn(
-        // md:hidden — garante que o sheet mobile nunca aparece em desktop,
-        // mesmo que o container pai esteja visivel por inconsistencia de estado.
-        'md:hidden flex-shrink-0 bg-[#0C131F] border-t border-[#16202D] overflow-hidden flex flex-col',
-        // Durante o drag a altura é controlada via inline style — sem transition
-        // pra acompanhar o dedo. Fora do drag, transition suaviza o snap.
-        !dragging && 'transition-all duration-300',
-        !dragging && (expanded ? 'h-[72vh]' : 'h-[84px]')
-      )}
-      style={dragging ? { height: dragHeight! } : undefined}
-    >
-      {/* Handle bar — duas zonas tap + drag em qualquer ponto */}
-      <div
-        onPointerDown={onHandlePointerDown}
-        onPointerMove={onHandlePointerMove}
-        onPointerUp={onHandlePointerEnd}
-        onPointerCancel={onHandlePointerEnd}
-        className="flex items-center justify-between px-4 py-2.5 border-b border-[#16202D] flex-shrink-0 relative cursor-grab touch-none select-none"
+    <div className="md:hidden flex shrink-0 flex-col overflow-hidden border-t border-[#16202D] bg-[#0C131F]">
+      {/* Linha do ativo — único ponto de entrada do seletor de paridade no
+          portrait, então continua aqui mesmo sem o handle do sheet. */}
+      <button
+        type="button"
+        onClick={() => onAssetTap?.()}
+        className="flex shrink-0 items-center gap-2 border-b border-[#16202D] px-4 py-2 active:bg-white/5"
       >
-        <div className="absolute left-1/2 -translate-x-1/2 top-[7px] w-8 h-[3px] bg-[#1B2735] rounded-full pointer-events-none" />
+        <FlagPair code1={asset.code1} code2={asset.code2} size={16} />
+        <span className="text-[13px] font-bold text-white">{asset.symbol}</span>
+        <span className="text-[13px] font-bold text-green-400">{asset.payout}%</span>
+        <ChevronDown size={12} className="text-[#7E8DA2]" />
+      </button>
 
-        {/* Zona esquerda: chip do ativo abre seletor de paridade */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (!dragging) onAssetTap?.()
-          }}
-          className="flex items-center gap-2 px-2 -mx-2 py-1 rounded-md active:bg-white/5"
-        >
-          <FlagPair code1={asset.code1} code2={asset.code2} size={18} />
-          <span className="text-sm font-bold text-white">{asset.symbol}</span>
-          <span className="text-sm font-bold text-green-400">{asset.payout}%</span>
-          <ChevronDown size={12} className="text-[#7E8DA2]" />
-        </button>
-
-        {/* Zona direita: expande/fecha o painel */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (!dragging) setExpanded(v => !v)
-          }}
-          className="flex items-center gap-1 text-[#7E8DA2] px-2 -mx-2 py-1 rounded-md active:bg-white/5"
-        >
-          <span className="text-[10px] font-semibold">{expanded ? 'Fechar' : 'Negociar'}</span>
-          {expanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
-      </div>
-
-      {/* Collapsed: quick CALL/PUT buttons — escondidos durante o drag pra revelar o painel */}
-      {!expanded && !dragging && (
-        <div className="flex gap-2 px-3 py-2.5 flex-shrink-0">
-          <button
-            onClick={() => quickTrade('CALL')}
-            className="flex-1 h-10 rounded-xl bg-green-500 hover:bg-green-400 active:scale-[0.98] flex items-center justify-center gap-2 font-bold text-white text-sm transition-all disabled:opacity-50"
-            disabled={livePrice == null}
-          >
-            <span>Compra</span>
-            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-              <ArrowUp size={13} strokeWidth={2.5} />
-            </div>
-          </button>
-          <button
-            onClick={() => quickTrade('PUT')}
-            className="flex-1 h-10 rounded-xl bg-red-500 hover:bg-red-400 active:scale-[0.98] flex items-center justify-center gap-2 font-bold text-white text-sm transition-all disabled:opacity-50"
-            disabled={livePrice == null}
-          >
-            <span>Venda</span>
-            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-              <ArrowDown size={13} strokeWidth={2.5} />
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* TradingPanel sempre montado — preserva estado/timers e expõe placeTrade via ref.
-          Esconde via prop `hidden` quando colapsado pra não consumir altura. */}
-      <div className={cn('flex-1 overflow-y-auto', !expanded && !dragging && 'hidden')}>
+      <div className="max-h-[46vh] overflow-y-auto">
         <TradingPanel
           ref={panelRef}
           asset={asset}
@@ -238,6 +146,8 @@ export function MobileTradingSheet({
           livePrice={livePrice}
           livePriceRef={livePriceRef}
           showResultPopup={showResultPopup}
+          positionsDrawer={positionsDrawer}
+          onPositionsDrawerClose={onPositionsDrawerClose}
         />
       </div>
     </div>
