@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Pencil, ZoomIn, ZoomOut, Crosshair, ChevronDown, Eye, Pen, X, Activity, Bell, MoreHorizontal, Maximize, Minus, Plus, ChevronLeft, ChevronRight, RotateCcw, Newspaper } from 'lucide-react'
+import { Pencil, ZoomIn, ZoomOut, Crosshair, ChevronDown, Eye, Pen, X, Activity, Bell, MoreHorizontal, Maximize, Minus, Plus, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { generateMockCandles, getOTCPrice, getAssetDecimals, type Asset, type Candle, type ActiveTrade } from '@/lib/mockData'
 import { REAL_ASSETS, tfToBinanceInterval } from '@/lib/marketSymbols'
 import { isForexOpen } from '@/lib/marketHours'
@@ -9,6 +9,7 @@ import { subscribeOtc, assetIdToOtcSymbol, fetchOtcCandles, OTC_BACKEND_TFS, typ
 import { cn } from '@/lib/utils'
 import { FlagPair } from '@/components/ui/FlagPair'
 import { ChartLoader } from './ChartLoader'
+import { PromoBanners } from './PromoBanners'
 import { getCandleColors, type CandleColors } from '@/lib/candleColors'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { useStudioMode } from '@/lib/studioMode'
@@ -495,8 +496,12 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
   // acontecem de verdade — só não segura mais depois de prontos.
   const loadStartRef   = useRef(0)
   const loaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Marca que o chart já apareceu uma vez nesta montagem — a partir daí nenhuma
+  // troca de ativo/timeframe volta a mostrar o loader.
+  const hasLoadedOnceRef = useRef(false)
   const releaseLoader  = useCallback(() => {
     if (loaderTimerRef.current) clearTimeout(loaderTimerRef.current)
+    hasLoadedOnceRef.current = true
     setIsLoading(false)
   }, [])
   // Etiqueta de preço: escrita direta no DOM (sem re-render do React) para
@@ -951,10 +956,14 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
   }, [])
 
   useEffect(() => {
-    // Sinaliza loading no inicio de cada troca de asset/tf/chartType.
-    // Skeleton overlay fica visivel ate o chart renderizar (setIsLoading(false)).
-    setIsLoading(true)
-    loadStartRef.current = Date.now()
+    // Loader SÓ no primeiro carregamento. Trocar de ativo ou de timeframe leva
+    // fração de segundo e reaproveita o chart existente — piscar um overlay a
+    // cada troca dava sensação de lentidão que não existe, e atrapalhava quem
+    // fica alternando entre paridades.
+    if (!hasLoadedOnceRef.current) {
+      setIsLoading(true)
+      loadStartRef.current = Date.now()
+    }
 
     // Trava de cancelamento: se o efeito re-roda (troca de paridade/tf) enquanto
     // um fetch lento de preco/candles ainda esta pendente, a continuacao antiga
@@ -3051,23 +3060,11 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
             />
           </section>
 
-          <section className="flex w-[420px] items-center gap-3.5 rounded-xl border border-[#141C28] bg-[#0A101A] px-4 py-[13px]">
-            <span className="flex h-[38px] w-[38px] items-center justify-center rounded-lg border border-[#1E2A39] bg-[#101825] text-[#8B9BB0]">
-              <Newspaper size={18} />
-            </span>
-            <div className="flex flex-col gap-[7px] leading-none">
-              <span className="text-[12.5px] font-bold text-[#E4EBF5]">Notícias importantes</span>
-              <span className="text-[12px] text-[#7E8DA2]">Nenhum evento de alto impacto agora</span>
-            </div>
-            <div className="ml-auto flex flex-col items-end gap-[9px] leading-none">
-              <span className="text-[10.5px] font-medium text-[#67768B]">Impacto</span>
-              <span className="flex items-center gap-[5px]">
-                <i className="h-[7px] w-[7px] rounded-full bg-[#1E2A39]" />
-                <i className="h-[7px] w-[7px] rounded-full bg-[#1E2A39]" />
-                <i className="h-[7px] w-[7px] rounded-full bg-[#1E2A39]" />
-              </span>
-            </div>
-          </section>
+          {/* Antes havia aqui um card "Notícias importantes" fixo, que sempre
+              dizia "Nenhum evento de alto impacto agora" — não existia fonte de
+              notícia por trás. Virou o carrossel de banners, alimentado pelo
+              admin. Sem banner cadastrado ele não renderiza nada. */}
+          <PromoBanners />
         </div>
       )}
     </div>

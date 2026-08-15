@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Brain, Users, Wallet, TrendingUp, ShieldCheck,
   ArrowDownCircle, ArrowUpCircle, MessageSquare, UserPlus, Copy,
   Trophy, Gift, Zap, BarChart2, Clock, Cpu, Settings, ChevronRight,
-  LogOut, Lock, FileSearch, X, Activity, Globe, Gauge, Database,
+  LogOut, Lock, FileSearch, X, Activity, Globe, Gauge, Database, Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
@@ -64,6 +64,7 @@ const SECTIONS: NavSection[] = [
       { label: 'Níveis',         href: '/admin/niveis',       icon: Trophy },
       { label: 'Bônus',          href: '/admin/bonus',        icon: Gift },
       { label: 'Provedor de Liquidez', href: '/admin/provedor-liquidez', icon: Activity },
+      { label: 'Banners',        href: '/admin/banners',      icon: Megaphone },
       { label: 'Site / Landing Page', href: '/admin/site',     icon: Globe },
     ],
   },
