@@ -30,9 +30,9 @@ export type Brand = {
 }
 
 export const BRAND_FALLBACK: Brand = {
-  name:     'NORVERO',
-  subtitle: 'OPÇÕES DIGITAIS',
-  fullName: 'Norvero',
+  name:     'VÉRTICE',
+  subtitle: 'BROKER',
+  fullName: 'Vértice Broker',
   logoUrl:  '',
   logoWideUrl: '',
   logoMode: 'icon-text',
@@ -47,10 +47,12 @@ export const BRAND_FALLBACK: Brand = {
  * continuam separados de propósito: se um dia entrar um sobrenome, a prosa dos
  * contratos não deve virar "a Norvero Markets pode recusar".
  */
-export const BRAND_SHORT = 'Norvero'
+export const BRAND_SHORT = 'Vértice'
 
 /**
  * Domínio principal, sem protocolo. Base dos e-mails institucionais e do
  * fallback de SITE_URL.
  */
-export const BRAND_DOMAIN = 'norvero.co'
+// PROVISÓRIO: trocar assim que o domínio definitivo for registrado. Só é usado
+// como fallback — em produção quem manda é NEXT_PUBLIC_SITE_URL.
+export const BRAND_DOMAIN = 'verticebroker.com'
