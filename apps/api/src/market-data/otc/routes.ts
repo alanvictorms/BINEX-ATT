@@ -7,6 +7,7 @@ import {
 import { redis, KEYS } from '../../redis.js'
 import { prisma } from '../../prisma.js'
 import { isOtcSessionOpen } from './session.js'
+import { fetchDeepHistory } from '../../integrations/deriv/history.js'
 
 export async function otcAdminRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate)
@@ -136,6 +137,28 @@ export async function otcPublicRoutes(app: FastifyInstance) {
       t: Math.floor(r.openTime.getTime() / 1000),
       o: Number(r.open), h: Number(r.high), l: Number(r.low), c: Number(r.close),
     }))
+
+    // Postgres nao cobriu o pedido inteiro -> completa com a Deriv, normalizada
+    // pelo fator congelado do ativo. E o que deixa o chart ir alem do que foi
+    // backfillado sem precisar guardar tudo em disco.
+    //
+    // fetchDeepHistory nunca lanca: se a Deriv estiver fora, cair no timeout ou
+    // o ativo nao tiver fator congelado, volta [] e o cliente recebe so o que o
+    // Postgres tinha — exatamente o comportamento de antes.
+    if (candles.length < limit) {
+      const oldest = candles.length
+        ? new Date(candles[0].t * 1000)
+        : (before ?? new Date())
+      const older = await fetchDeepHistory({
+        otcSymbol: symbol,
+        tf,
+        before:    oldest,
+        limit:     limit - candles.length,
+        decimals:  asset.decimals,
+      })
+      if (older.length) return { symbol, tf, candles: [...older, ...candles] }
+    }
+
     return { symbol, tf, candles }
   })
 }

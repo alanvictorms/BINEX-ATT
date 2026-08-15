@@ -11,6 +11,7 @@
     "db:studio": "prisma studio",
     "db:seed-otc": "tsx prisma/seed-otc.ts",
     "db:backfill-deriv": "tsx prisma/backfill-otc-from-deriv.ts",
+    "db:freeze-deriv-factors": "tsx prisma/freeze-deriv-factors.ts",
     "db:promote-admin": "tsx prisma/promote-admin.ts"
   },
   "dependencies": {

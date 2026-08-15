@@ -40,6 +40,7 @@ import { PrismaClient } from '@prisma/client'
 import Redis from 'ioredis'
 import { DerivClient, DERIV_MAX_CANDLES, type DerivCandle } from '../src/integrations/deriv/client.js'
 import { derivSymbolFor } from '../src/integrations/deriv/symbols.js'
+import { getOrFreezeFactor } from '../src/integrations/deriv/factors.js'
 
 const prisma = new PrismaClient()
 
@@ -164,17 +165,28 @@ async function main() {
       const derivSymbol = derivSymbolFor(asset.symbol)!
       const decimals    = asset.decimals
       const basePrice   = Number(asset.basePrice)
-      const target      = await currentOtcPrice(asset.symbol, basePrice)
 
       console.log(`${asset.symbol} -> ${derivSymbol}`)
+
+      // Fator congelado UMA vez por ativo (ver factors.ts), nao por timeframe.
+      // Sem isso, uma re-execucao meses depois pegaria o preco vivo ja drifado e
+      // gravaria candles novos com fator diferente dos que ja estao no banco,
+      // criando uma emenda torta no meio da serie.
+      let factor = 1
+      if (MODE === 'normalize') {
+        const frozen = await getOrFreezeFactor(asset.symbol, derivSymbol, async () => {
+          const target = await currentOtcPrice(asset.symbol, basePrice)
+          const probe  = await deriv.candles({ symbol: derivSymbol, granularity: 60, start: now - 12 * 3600, end: now, count: 500 })
+          const close  = probe.length ? probe[probe.length - 1].close : 0
+          if (!(close > 0)) throw new Error(`sem preco recente da Deriv pra ${derivSymbol}`)
+          return { factor: target / close, target }
+        })
+        factor = frozen.factor
+      }
 
       for (const tf of TIMEFRAMES) {
         const candles = await fetchRange(deriv, derivSymbol, tf, fromFor(tf), now)
         if (candles.length === 0) { console.log(`  tf ${tf}s: nada retornado`); continue }
-
-        // Fator constante: preserva a forma real, so desloca o nivel.
-        const lastClose = candles[candles.length - 1].close
-        const factor    = MODE === 'normalize' && lastClose > 0 ? target / lastClose : 1
 
         const rows = candles.map(c => ({
           assetId:   asset.id,
