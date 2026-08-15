@@ -939,7 +939,7 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
           <div className="flex-1 text-center relative">
             <button
               onClick={() => setTimerPickerOpen(v => !v)}
-              className="text-[19px] font-bold text-white tracking-[0.02em] w-full tabular-nums"
+              className="text-[15px] font-bold text-white tracking-[0.02em] w-full tabular-nums"
             >
               {timeDisplay}
             </button>
@@ -1000,12 +1000,12 @@ export const TradingPanel = forwardRef<TradingPanelHandle, TradingPanelProps>(fu
                 onBlur={() => commitInvestment(investmentRaw)}
                 onKeyDown={e => { if (e.key === 'Enter') commitInvestment(investmentRaw); if (e.key === 'Escape') setEditingInvestment(false) }}
                 placeholder={String(investment)}
-                className="w-full bg-transparent text-base font-bold text-white text-center outline-none border-b border-blue-500 placeholder:text-white/30"
+                className="w-full bg-transparent text-[15px] font-bold text-white text-center outline-none border-b border-blue-500 placeholder:text-white/30"
               />
             ) : (
               <button
                 onClick={() => { setInvestmentRaw(''); setEditingInvestment(true) }}
-                className="text-[19px] font-bold text-white w-full tabular-nums"
+                className="text-[15px] font-bold text-white w-full tabular-nums"
                 title="Clique para editar"
               >
                 R$ {fmtMoney(investment)}

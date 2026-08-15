@@ -487,14 +487,17 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
   const [remountKey, setRemountKey] = useState(0) // bump p/ reconstruir o chart do zero (ex: aba volta a ficar visível)
   const [isLoading, setIsLoading] = useState(true) // true enquanto fetch + render do chart inicial
   const [alertSet, setAlertSet] = useState(false)
-  // Pré-loader com piso de 5s: o bloco do gráfico só libera depois disso.
+  // Pré-loader sem piso de tempo: libera assim que o gráfico está pronto.
+  //
+  // Havia um mínimo de 5s aqui. Trocar de 1m pra 30s carrega em bem menos que
+  // isso, então o usuário ficava olhando um loader por tempo puramente
+  // artificial. O loader continua aparecendo enquanto o fetch e o render
+  // acontecem de verdade — só não segura mais depois de prontos.
   const loadStartRef   = useRef(0)
   const loaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const releaseLoader  = useCallback(() => {
     if (loaderTimerRef.current) clearTimeout(loaderTimerRef.current)
-    const wait = Math.max(0, 5_000 - (Date.now() - loadStartRef.current))
-    if (wait === 0) { setIsLoading(false); return }
-    loaderTimerRef.current = setTimeout(() => setIsLoading(false), wait)
+    setIsLoading(false)
   }, [])
   // Etiqueta de preço: escrita direta no DOM (sem re-render do React) para
   // acompanhar o preço a cada frame sem engasgar o canvas.
@@ -1529,17 +1532,16 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
       // 130ms reproduz o comportamento antigo de 0.12 a 60fps.
       const SMOOTH_TAU_MS = 130
 
-      // ── Camada de "vida" da vela ao vivo (cosmética) ──────────────────────
-      // Micro tremor estilo Quotex: faz a vela em formação "vibrar" entre os ticks
-      // em vez de deslizar e congelar. Random-walk com reversão à média, amplitude
-      // proporcional ao preço. APLICADO SÓ NO DESENHO — o displayedPrice (preço de
-      // operação) continua limpo. Só em ativos OTC sintéticos; feed real não recebe
-      // movimento fabricado. Valores conservadores e calibráveis no olho.
-      const liveJitterEnabled = !realConfig
-      const LIVE_JITTER_MAX   = 0.00010  // amplitude máx (fração do preço) ~0.010%
-      const LIVE_JITTER_STEP  = 0.00003  // amplitude por ~16.7ms (normalizada por dt)
-      const LIVE_JITTER_TAU_MS = 158     // reversao a media, em tempo (equivale a 0.90/frame a 60fps)
-      let   liveJitter        = 0
+      // O "micro tremor estilo Quotex" que existia aqui foi REMOVIDO.
+      //
+      // Era um random-walk somado ao preço a cada frame pra vela "respirar" entre
+      // ticks. Na prática é ruído aleatório: a vela vibrava mesmo com preço
+      // parado, antes e depois de qualquer movimento real, e o pavio crescia
+      // sozinho porque high/low acompanhavam o ruído. Nenhuma suavização resolve
+      // isso — o tremor não era engasgo de render, era movimento fabricado.
+      //
+      // Agora o desenho segue exatamente o displayedPrice: parado quando o preço
+      // está parado, e liso quando ele anda.
 
       // Âncora de abertura: fechamento do último candle histórico.
       // Garante continuidade visual — a vela ao vivo abre exatamente onde a
@@ -1718,15 +1720,8 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
         displayedPrice = displayedPrice + (targetPrice - displayedPrice) * kSmooth
         const dp = fmt5(displayedPrice)
 
-        // Tremor cosmético (só desenho): random-walk com reversão à média em torno
-        // do preço limpo, pra vela "respirar" ao vivo como na Quotex.
-        if (liveJitterEnabled) {
-          const kDecay = Math.exp(-dt / LIVE_JITTER_TAU_MS)
-          liveJitter = liveJitter * kDecay + (Math.random() - 0.5) * LIVE_JITTER_STEP * (dt / 16.67)
-          if (liveJitter >  LIVE_JITTER_MAX) liveJitter =  LIVE_JITTER_MAX
-          if (liveJitter < -LIVE_JITTER_MAX) liveJitter = -LIVE_JITTER_MAX
-        }
-        const renderClose = liveJitterEnabled ? fmt5(displayedPrice * (1 + liveJitter)) : dp
+        // Desenho = preço interpolado, sem nada somado por cima.
+        const renderClose = dp
 
         // Pavio "respira": high/low acompanham o tremor ao vivo (puramente visual,
         // resetados a cada nova vela pelo tick de 200ms).

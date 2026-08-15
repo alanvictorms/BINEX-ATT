@@ -1,7 +1,8 @@
 'use client'
 
-import { TrendingUp, Headphones, User, Settings, Copy, Volume2 } from 'lucide-react'
+import { Settings, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { GridIcon, ShieldCheckIcon, UserCircleIcon, HeadsetIcon } from './MenuIcons'
 
 type SidebarTab = 'TRADE' | 'SUPORTE' | 'CONTA' | 'TORNEIOS' | 'MERCADO' | 'MAIS' | 'COPY'
 
@@ -12,10 +13,10 @@ interface SidebarProps {
 }
 
 const NAV: { tab: SidebarTab; label: string; icon: React.ReactNode; badge?: string }[] = [
-  { tab: 'TRADE',    label: 'Negociar',     icon: <TrendingUp size={21} strokeWidth={1.8} /> },
-  { tab: 'COPY',     label: 'Copy Trading', icon: <Copy size={21} strokeWidth={1.8} />, badge: 'Novo' },
-  { tab: 'CONTA',    label: 'Conta',        icon: <User size={21} strokeWidth={1.8} /> },
-  { tab: 'SUPORTE',  label: 'Suporte',      icon: <Headphones size={21} strokeWidth={1.8} /> },
+  { tab: 'TRADE',    label: 'Negociar',     icon: <GridIcon size={21} /> },
+  { tab: 'COPY',     label: 'Copy Trading', icon: <ShieldCheckIcon size={21} /> },
+  { tab: 'CONTA',    label: 'Conta',        icon: <UserCircleIcon size={21} /> },
+  { tab: 'SUPORTE',  label: 'Suporte',      icon: <HeadsetIcon size={21} /> },
 ]
 
 export function Sidebar({ activeTab, onTabChange, onSettings }: SidebarProps) {
@@ -36,7 +37,7 @@ export function Sidebar({ activeTab, onTabChange, onSettings }: SidebarProps) {
               className={cn(
                 'relative flex w-full flex-col items-center gap-[8px] rounded-xl border px-1 py-[13px] transition-colors duration-200',
                 isActive
-                  ? 'border-[#2E6BE6] bg-[#0F1A2C] text-white'
+                  ? 'border-[#1D5FE0] bg-[#1D5FE0] text-white'
                   : 'border-transparent text-[#66768C] hover:bg-[#0D1420] hover:text-[#BCC9D8]',
               )}
             >

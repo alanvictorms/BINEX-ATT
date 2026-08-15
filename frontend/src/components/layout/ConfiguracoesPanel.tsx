@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   X, Check, Volume2, VolumeX, SlidersHorizontal, Palette, Gauge, MousePointerClick,
-  MoveHorizontal, Tag,
+  MoveHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { playSound, getSoundPrefs, setSoundPrefs } from '@/lib/sound'
@@ -252,14 +252,6 @@ export function ConfiguracoesPanel({ onClose, settings = DEFAULT_SETTINGS, onSet
               sub="Reduz efeitos visuais em máquinas mais fracas"
               checked={settings.performanceMode}
               onChange={v => setSetting('performanceMode', v)}
-            />
-            <OptionRow
-              testid="config-shortlabels"
-              icon={<Tag size={17} />}
-              label="Rótulos curtos"
-              sub="Abrevia nomes de ativos e valores na interface"
-              checked={settings.shortLabels}
-              onChange={v => setSetting('shortLabels', v)}
               last
             />
           </Section>
@@ -267,17 +259,18 @@ export function ConfiguracoesPanel({ onClose, settings = DEFAULT_SETTINGS, onSet
           <SoundSection />
 
           <Section icon={<Palette size={15} />} title="Cores do gráfico">
-            <ColorRow
-              testid="config-color-up"
-              label="Tendência de alta" colors={UP_COLORS}
-              value={colors.up} onChange={c => updateColor({ up: c })}
-            />
-            <div className="border-t border-[#141C28]" />
-            <ColorRow
-              testid="config-color-down"
-              label="Tendência de baixa" colors={DOWN_COLORS}
-              value={colors.down} onChange={c => updateColor({ down: c })}
-            />
+            <div className="grid grid-cols-2 gap-x-5">
+              <ColorRow
+                testid="config-color-up"
+                label="Tendência de alta" colors={UP_COLORS}
+                value={colors.up} onChange={c => updateColor({ up: c })}
+              />
+              <ColorRow
+                testid="config-color-down"
+                label="Tendência de baixa" colors={DOWN_COLORS}
+                value={colors.down} onChange={c => updateColor({ down: c })}
+              />
+            </div>
           </Section>
         </div>
       </div>
