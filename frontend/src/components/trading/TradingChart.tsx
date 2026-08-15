@@ -1023,7 +1023,12 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
 
       chartRef.current = chart
 
-      const candleLimit = 300
+      // Era 300, que dava ~25h de scrollback no tf de 5min e escondia os 3 meses
+      // de historico que existem em otc_candles. 5000 cobre ~17 dias em 5min e
+      // ~3,5 dias em 1min, e o lightweight-charts renderiza isso sem suar.
+      // As fontes de mercado ao vivo (Binance/Kraken/Twelve Data) tem teto proprio
+      // de 500 na rota /api/market/candles e simplesmente clampam esse valor.
+      const candleLimit = 5000
       const cacheKey = `${asset.id}:${selectedTf.seconds}`
       const cached = candleCache.get(cacheKey)
       // Feed real: cache curtissimo — historico velho abre "buraco" visivel entre

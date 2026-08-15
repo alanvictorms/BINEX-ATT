@@ -92,8 +92,13 @@ export async function otcPublicRoutes(app: FastifyInstance) {
   app.get('/:symbol/candles', async (req, reply) => {
     const { symbol } = req.params as { symbol: string }
     const q = req.query as { tf?: string; limit?: string; before?: string }
-    const tf    = parseInt(q.tf    ?? '60', 10)
-    const limit = Math.min(parseInt(q.limit ?? '200', 10), 500)
+    const tf = parseInt(q.tf ?? '60', 10)
+    // Teto alto de proposito: 50k cobre a serie inteira de qualquer timeframe
+    // (o backfill mais longo tem ~43k candles em 60s), entao na pratica nao ha
+    // limite pra uso real. Continua sendo um teto e nao `take` livre so pra um
+    // ?limit=99999999 nao varrer a tabela toda e derrubar o container por memoria.
+    const MAX_LIMIT = 50_000
+    const limit = Math.min(parseInt(q.limit ?? '200', 10) || 200, MAX_LIMIT)
     if (![5, 15, 60, 300].includes(tf)) return reply.status(400).send({ error: 'INVALID_TF' })
 
     // `before` (epoch em segundos) pagina pra tras: devolve os `limit` candles
