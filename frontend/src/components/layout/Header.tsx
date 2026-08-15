@@ -34,6 +34,9 @@ interface HeaderProps {
   balance: number | null
   userEmail?: string
   userId?: string
+  /** assetId -> andamento da ordem aberta nele. Opcional: sem isso o header
+   *  renderiza exatamente como antes. */
+  tradeStatus?: Record<string, 'up' | 'down'>
 }
 
 export function Header({
@@ -57,6 +60,7 @@ export function Header({
   balance,
   userEmail = '',
   userId = '',
+  tradeStatus,
 }: HeaderProps) {
   const [accountOpen, setAccountOpen] = useState(false)
   const [balanceHidden, setBalanceHidden] = useState(false)
@@ -119,7 +123,22 @@ export function Header({
                     </span>
                   )}
                 </span>
-                <span className="mt-[4px] text-[11px] font-semibold text-[#22D39A]">{asset.payout}%</span>
+                <span className="mt-[4px] flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-[#22D39A]">{asset.payout}%</span>
+                  {/* Andamento da ordem aberta NESTE ativo. Fica aqui pra dar pra
+                      acompanhar o resultado mesmo estando com outro ativo na tela. */}
+                  {tradeStatus?.[asset.id] && (
+                    <span
+                      title={tradeStatus[asset.id] === 'up' ? 'Operação ganhando' : 'Operação perdendo'}
+                      className={cn(
+                        'inline-block h-[7px] w-[7px] shrink-0 rounded-full',
+                        tradeStatus[asset.id] === 'up'
+                          ? 'bg-[#22D39A] shadow-[0_0_6px_rgba(34,211,154,0.8)]'
+                          : 'bg-[#F0435A] shadow-[0_0_6px_rgba(240,67,90,0.8)]',
+                      )}
+                    />
+                  )}
+                </span>
               </span>
               {isActive && (
                 <button

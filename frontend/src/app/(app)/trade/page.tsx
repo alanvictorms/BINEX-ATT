@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore, useCurrentAccount } from '@/store/auth'
 import { GraduationCap, Gem, Plus, ChevronDown } from 'lucide-react'
@@ -33,6 +33,9 @@ import { BrandMark } from '@/components/brand/BrandMark'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { ASSETS, getOTCPrice, type Asset, type ActiveTrade } from '@/lib/mockData'
 import { syncMarketAssets } from '@/lib/marketAssets'
+import { assetIdToOtcSymbol } from '@/lib/otcClient'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
 import { cn } from '@/lib/utils'
 import { useIsMobile, useIsPhoneLandscape } from '@/lib/useIsMobile'
 import { initSound } from '@/lib/sound'
@@ -107,6 +110,57 @@ export default function TradingPage() {
     livePriceRef.current = price
     setLivePrice(price)
   }
+
+  // ── Andamento das ordens abertas em ativos que NÃO estão na tela ──────────
+  // O chart só reporta o preço do ativo selecionado. Sem buscar o preço dos
+  // outros, o ponto de status no header acenderia só onde ele já é óbvio — que
+  // é justamente o caso sem utilidade.
+  //
+  // Só ativos OTC: o preço autoritativo deles vem do backend. Ativo de mercado
+  // real fica de fora e simplesmente não mostra ponto.
+  const [offscreenPrices, setOffscreenPrices] = useState<Record<string, number>>({})
+  const offscreenIds = useMemo(
+    () => [...new Set(activeTrades.map(t => t.assetId))].filter(id => id !== selectedAsset.id),
+    [activeTrades, selectedAsset.id],
+  )
+  const offscreenKey = offscreenIds.join(',')
+
+  useEffect(() => {
+    if (!offscreenKey) { setOffscreenPrices({}); return }
+    const ids = offscreenKey.split(',')
+    let cancelled = false
+
+    async function poll() {
+      const pairs = await Promise.all(ids.map(async id => {
+        const symbol = assetIdToOtcSymbol(id)
+        if (!symbol) return null
+        try {
+          const res = await fetch(`${API_BASE}/market-data/otc/${encodeURIComponent(symbol)}/price`, { cache: 'no-store' })
+          if (!res.ok) return null
+          const j = await res.json()
+          return Number.isFinite(j?.price) ? [id, Number(j.price)] as const : null
+        } catch { return null }
+      }))
+      if (cancelled) return
+      setOffscreenPrices(Object.fromEntries(pairs.filter(Boolean) as [string, number][]))
+    }
+
+    poll()
+    // 3s basta: é um indicador de acompanhamento, não o preço de liquidação.
+    const timer = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [offscreenKey])
+
+  const tradeStatus = useMemo(() => {
+    const out: Record<string, 'up' | 'down'> = {}
+    for (const t of activeTrades) {
+      const price = t.assetId === selectedAsset.id ? livePrice : offscreenPrices[t.assetId]
+      if (price == null || !Number.isFinite(price)) continue
+      const winning = t.direction === 'CALL' ? price > t.entryPrice : price < t.entryPrice
+      out[t.assetId] = winning ? 'up' : 'down'
+    }
+    return out
+  }, [activeTrades, selectedAsset.id, livePrice, offscreenPrices])
 
   // ── Popup de boas-vindas: bônus escalonado dos primeiros depósitos ─────────
   // Aparece pra quem ainda tem degrau da escada disponível (fez menos depósitos
@@ -322,6 +376,7 @@ export default function TradingPage() {
             onSelectAsset={handleSelectAsset}
             openAssets={openAssets}
             onOpenAsset={handleSelectAsset}
+            tradeStatus={tradeStatus}
             onCloseAsset={handleCloseAsset}
             onOpenSelector={() => setAssetSelectorOpen(true)}
             onDeposito={() => setDepositoOpen(true)}
