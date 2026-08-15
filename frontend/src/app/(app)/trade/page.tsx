@@ -16,7 +16,6 @@ import { useStudioMode } from '@/lib/studioMode'
 import { AccountSwitchModal } from '@/components/layout/AccountSwitchModal'
 import { AssetInfoModal } from '@/components/trading/AssetInfoModal'
 import { AssetSelectorModal } from '@/components/trading/AssetSelectorModal'
-import { SupportPanel } from '@/components/layout/SupportPanel'
 import { SupportPage } from '@/components/support/SupportPage'
 import { ContaPage } from '@/components/conta/ContaPage'
 import { TorneiosPage } from '@/components/torneios/TorneiosPage'
@@ -327,7 +326,6 @@ export default function TradingPage() {
     const desktopPopup = isMobile === false
     if (sidebarTab === 'SUPORTE') return (
       <div className={cn('flex flex-1 min-h-0 overflow-hidden', forMobile && 'flex-col')}>
-        {!forMobile && <SupportPanel onClose={() => setSidebarTab('TRADE')} />}
         <SupportPage />
       </div>
     )

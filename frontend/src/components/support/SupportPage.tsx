@@ -101,15 +101,6 @@ export function SupportPage() {
             </div>
             <p className="vx-sub mt-3">Estamos aqui para ajudar você a operar com confiança.</p>
           </div>
-          <div className="vx-panel w-[212px] shrink-0 px-5 py-4">
-            <div className="text-[12.5px] text-[#AEBBCB]">Atendimento</div>
-            <div className="mt-2 text-[19px] font-bold leading-none text-[#1FD196]">24/7</div>
-            <div className="vx-sub-sm mt-2">Todos os dias da semana</div>
-          </div>
-          <div className="vx-panel w-[420px] shrink-0 p-4">
-            <div className="relative"><input className="vx-input pr-10" placeholder="Buscar na base de conhecimento" /><Search size={16} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7A8AA0]" /></div>
-            <div className="mt-3 flex items-center gap-2"><span className="vx-sub-sm">Dicas populares:</span>{TIPS.map(t => <button key={t} type="button" className="vx-chip">{t}</button>)}</div>
-          </div>
         </div>
 
         {/* Body */}
@@ -120,7 +111,6 @@ export function SupportPage() {
               {[
                 { icon: MessageSquare, title: 'Minhas solicitações', desc: 'Veja e acompanhe suas solicitações.', key: 'solicitacoes' as const },
                 { icon: Plus, title: 'Criar solicitação', desc: 'Abra uma nova solicitação.', key: 'criar' as const },
-                { icon: HelpCircle, title: 'Perguntas frequentes', desc: 'Tire dúvidas rápidas.', key: 'faq' as const },
               ].map((c, i) => {
                 const Icon = c.icon; const active = tab === c.key
                 return (
@@ -135,13 +125,6 @@ export function SupportPage() {
                   </button>
                 )
               })}
-            </div>
-            <div className="vx-panel relative overflow-hidden p-4">
-              <div className="relative">
-                <div className="text-[14px] font-semibold text-white">Precisa de ajuda agora?</div>
-                <p className="vx-sub mt-2.5 max-w-[210px]">Fale com nossa equipe via chat ao vivo.</p>
-                <button type="button" className="vx-btn-outline-green mt-10">Abrir chat ao vivo <span className="h-[7px] w-[7px] rounded-full bg-[#3FE0A6]" /></button>
-              </div>
             </div>
           </div>
 
@@ -209,32 +192,6 @@ export function SupportPage() {
             )}
           </div>
 
-          {/* Right column */}
-          <div className="vx-col w-[360px] shrink-0">
-            <div className="vx-panel p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5"><BookOpen size={18} className="text-[#6C9CF8]" /><h3 className="text-[15px] font-bold text-white">Artigos sugeridos</h3></div>
-                <button type="button" className="vx-link">Ver todos</button>
-              </div>
-              <div className="mt-4 flex flex-col gap-2">
-                {ARTICLES.map(a => (
-                  <button key={a.title} type="button" className="vx-list-item">
-                    <span className="vx-ibox h-[34px] w-[34px]"><FileText size={16} /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium text-[#EAF1FA]">{a.title}</span><span className="mt-2 flex items-center gap-2.5"><span className="vx-chip-blue">{a.tag}</span><span className="vx-sub-sm">{a.time}</span></span></span>
-                    <ChevronRight size={15} className="text-[#6B7A8E]" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="vx-panel p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5"><ShieldCheck size={18} className="text-[#1FD196]" /><h3 className="text-[15px] font-bold text-white">Status do sistema</h3></div>
-                <button type="button" className="vx-link">Ver histórico</button>
-              </div>
-              <div className="vx-list-item mt-4 justify-between"><span className="text-[13px] text-[#C3CFDD]">Todos os sistemas operacionais</span><span className="text-[13px] font-bold text-[#1FD196]">100%</span></div>
-              <div className="mt-3.5 flex items-center gap-2"><span className="h-[6px] w-[6px] rounded-full bg-[#1FD196]" /><span className="vx-sub-sm">Última atualização: Hoje</span></div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
