@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Users, X, Search, ArrowRight, ArrowUp, ArrowDown, Check, Crown, Wallet,
   AlertTriangle, PartyPopper, Info, UserPlus, Bookmark, Activity, TrendingUp,
@@ -61,13 +61,42 @@ const HOW = [
   { n: 3, title: 'Copie automaticamente', desc: 'Suas operações serão copiadas em tempo real' },
 ]
 
-const CT_STATS = [
-  { icon: <Wallet size={15} />, label: 'Total investido' },
-  { icon: <Users size={15} />, label: 'Traders ativos' },
-  { icon: <Activity size={15} />, label: 'Copiadores ativos' },
-  { icon: <TrendingUp size={15} />, label: 'Retorno médio (30D)', green: true },
-  { icon: <BarChart3 size={15} />, label: 'Volume copiado (30D)' },
-]
+const fmtInt = (n: number) => Math.round(n).toLocaleString('pt-BR')
+const fmtPctSigned = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(0)}%`
+
+/**
+ * Risco do trader, derivado do percentual de operações perdedoras (lossPct — o
+ * mesmo número que o admin cadastra e que já alimenta a barra de rentabilidade).
+ *
+ * O catálogo não tem campo de risco. Derivar do que já está na tela é honesto;
+ * cravar "Moderado" fixo pra todo mundo, como no material de referência, seria
+ * um selo sem lastro nenhum.
+ */
+function riscoDe(lossPct: number): { label: string; nivel: 1 | 2 | 3; cor: string } {
+  if (lossPct <= 20) return { label: 'Baixo',    nivel: 1, cor: '#1FD196' }
+  if (lossPct <= 35) return { label: 'Moderado', nivel: 2, cor: '#F0B429' }
+  return { label: 'Alto', nivel: 3, cor: '#F0435A' }
+}
+
+/** Cartão de número grande do topo. */
+const Kpi = ({ label, value, hint, green }: { label: string; value: string; hint: string; green?: boolean }) => (
+  <div className="vx-panel min-w-0 flex-1 px-5 py-4">
+    <span className="vx-label block text-[9.5px]">{label}</span>
+    <span className={cn('mt-3 block truncate text-[26px] font-bold leading-none', green ? 'text-[#1FD196]' : 'text-white')}>{value}</span>
+    <span className="vx-sub-sm mt-2.5 block">{hint}</span>
+  </div>
+)
+
+const Filtro = ({ value, onChange, children }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode
+}) => (
+  <div className="vx-select-wrap w-[150px] shrink-0">
+    <select value={value} onChange={e => onChange(e.target.value)} className="vx-select py-[9px] text-[12.5px]">
+      {children}
+    </select>
+    <ChevronDown size={14} className="vx-select-icon" />
+  </div>
+)
 
 export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
   const [tab, setTab] = useState<'TRADERS' | 'MY'>('TRADERS')
@@ -77,6 +106,12 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
   const [hasPending, setHasPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  // Filtros do catálogo. Todos batem em campo que o trader já tem — nada aqui é
+  // botão decorativo: se não dá pra filtrar de verdade, não vira filtro.
+  const [fRetorno, setFRetorno] = useState('all')
+  const [fRisco, setFRisco]     = useState('all')
+  const [fPais, setFPais]       = useState('all')
+  const [ordem, setOrdem]       = useState('pop')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>(null)
   const [toast, setToast] = useState<{ result: 'WIN' | 'LOSS'; pnl: number } | null>(null)
@@ -114,7 +149,39 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
     try { await api.post(`/copy/${traderId}/cancel`); await Promise.all([load(), refreshAccounts()]) } catch (err: any) { alert(err?.response?.data?.error ?? err.message) } finally { setBusyId(null) }
   }
 
-  const filtered = traders.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
+  const paises = useMemo(
+    () => [...new Set(traders.map(t => (t.countryCode || 'br').toLowerCase()))].sort(),
+    [traders],
+  )
+
+  const filtered = useMemo(() => {
+    const termo = search.trim().toLowerCase()
+    const minRetorno = fRetorno === 'all' ? -Infinity : Number(fRetorno)
+    return traders
+      .filter(t => t.name.toLowerCase().includes(termo))
+      .filter(t => t.weeklyGainPct >= minRetorno)
+      .filter(t => fRisco === 'all' || riscoDe(t.lossPct).label === fRisco)
+      .filter(t => fPais === 'all' || (t.countryCode || 'br').toLowerCase() === fPais)
+      .sort((a, b) => (
+        ordem === 'retorno'  ? b.weeklyGainPct - a.weeklyGainPct
+        : ordem === 'comissao' ? a.commissionPct - b.commissionPct
+        : b.copiers - a.copiers
+      ))
+  }, [traders, search, fRetorno, fRisco, fPais, ordem])
+
+  // Números do topo e da barra lateral: somados do catálogo que a própria tela
+  // está mostrando. Assim o "1.248 traders ativos" nunca briga com a lista.
+  const stats = useMemo(() => {
+    const n = traders.length
+    return {
+      traders:    n,
+      copiadores: traders.reduce((s, t) => s + t.copiers, 0),
+      operacoes:  traders.reduce((s, t) => s + t.copiedTrades, 0),
+      retorno:    n ? traders.reduce((s, t) => s + t.weeklyGainPct, 0) / n : 0,
+      comissao:   n ? traders.reduce((s, t) => s + t.commissionPct, 0) / n : 0,
+    }
+  }, [traders])
+
   const myCount = subs.length
 
   return (
@@ -138,15 +205,47 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
         {!enabled && <div className="vx-panel p-4 text-center text-[13px] text-[#7E8DA2]">O Copy Trading está temporariamente indisponível.</div>}
 
         {loading ? <div className="p-8 text-center text-[13px] text-[#7E8DA2]">Carregando...</div> : tab === 'TRADERS' ? (
+          <div className="flex flex-col gap-4">
+          {/* Resumo do catálogo */}
+          <div className="flex items-stretch gap-3">
+            <Kpi label="Traders ativos"    value={fmtInt(stats.traders)}    hint="No catálogo agora" />
+            <Kpi label="Copiadores"        value={fmtInt(stats.copiadores)} hint="Somando todos os traders" />
+            <Kpi label="Operações copiadas" value={fmtInt(stats.operacoes)} hint="Desde o início" />
+            <Kpi label="Retorno médio"     value={fmtPctSigned(stats.retorno)} hint="Últimos 30 dias" green />
+          </div>
+
           <div className="flex items-start gap-4">
             <div className="vx-col min-w-0 flex-1">
               {/* Filters */}
-              <div className="vx-panel flex items-center gap-3 p-3.5">
-                <div className="relative w-[250px]">
+              <div className="vx-panel flex flex-wrap items-center gap-3 p-3.5">
+                <div className="relative w-[220px] shrink-0">
                   <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7A8AA0]" />
                   <input className="vx-input pl-9 py-[9px]" placeholder="Buscar traders..." value={search} onChange={e => setSearch(e.target.value)} data-testid="copy-search-input" />
                 </div>
-                <button type="button" className="vx-btn-ghost py-[9px] text-[12.5px] font-medium">Mais filtros <SlidersHorizontal size={14} /></button>
+                <Filtro value={fRetorno} onChange={setFRetorno}>
+                  <option value="all">Retorno: todos</option>
+                  <option value="30">Acima de +30%</option>
+                  <option value="50">Acima de +50%</option>
+                  <option value="80">Acima de +80%</option>
+                </Filtro>
+                <Filtro value={fRisco} onChange={setFRisco}>
+                  <option value="all">Risco: todos</option>
+                  <option value="Baixo">Baixo</option>
+                  <option value="Moderado">Moderado</option>
+                  <option value="Alto">Alto</option>
+                </Filtro>
+                <Filtro value={fPais} onChange={setFPais}>
+                  <option value="all">País: todos</option>
+                  {paises.map(p => <option key={p} value={p}>{p.toUpperCase()}</option>)}
+                </Filtro>
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="vx-sub-sm shrink-0">Ordenar por</span>
+                  <Filtro value={ordem} onChange={setOrdem}>
+                    <option value="pop">Popularidade</option>
+                    <option value="retorno">Maior retorno</option>
+                    <option value="comissao">Menor comissão</option>
+                  </Filtro>
+                </div>
               </div>
 
               {/* Trader list */}
@@ -156,6 +255,7 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                   const profit = Math.max(0, Math.min(100, t.profitPct))
                   const loss = Math.max(0, Math.min(100, t.lossPct))
                   const slider = profit
+                  const risco = riscoDe(loss)
                   return (
                     <div key={t.id} className="relative flex items-center gap-6 px-5 py-5" data-testid={`trader-card-${t.id}`}>
                       <div className="flex w-[212px] shrink-0 flex-col gap-3">
@@ -176,11 +276,27 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                         <span className="text-[26px] font-bold leading-none text-[#1FD196]">+{t.weeklyGainPct}%</span>
                         <Spark />
                       </div>
-                      <div className="flex w-[110px] shrink-0 flex-col gap-5">
+                      <div className="flex w-[95px] shrink-0 flex-col gap-5">
                         <Metric label="Operações" value={t.copiedTrades.toLocaleString('pt-BR')} />
                       </div>
                       <div className="flex w-[120px] shrink-0 flex-col gap-5">
+                        <Metric label="Taxa de sucesso" value={`${t.profitPct}%`} />
+                      </div>
+                      <div className="flex w-[95px] shrink-0 flex-col gap-5">
                         <Metric label="Comissão" value={`${t.commissionPct}%`} />
+                      </div>
+                      <div className="w-[110px] shrink-0 leading-none">
+                        <span className="vx-label block text-[9px]">Risco</span>
+                        <span className="mt-2.5 block text-[14px] font-semibold" style={{ color: risco.cor }}>{risco.label}</span>
+                        <span className="mt-2.5 flex gap-1">
+                          {[1, 2, 3].map(i => (
+                            <span
+                              key={i}
+                              className="h-[3px] w-[14px] rounded-full"
+                              style={{ background: i <= risco.nivel ? risco.cor : '#1E2A39' }}
+                            />
+                          ))}
+                        </span>
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col gap-4">
                         <div>
@@ -221,6 +337,27 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                 <div className="vx-divider my-4" />
                 <button type="button" className="vx-link">Saiba mais sobre Copy Trading <ArrowRight size={13} /></button>
               </div>
+
+              {/* Estatísticas — mesmos números do topo, somados do catálogo. */}
+              <div className="vx-panel p-5">
+                <h3 className="vx-h3 text-[15px]">Estatísticas do Copy Trading</h3>
+                <div className="mt-4 flex flex-col gap-3.5">
+                  {[
+                    { icon: <Users size={15} />,      label: 'Traders ativos',      value: fmtInt(stats.traders) },
+                    { icon: <Activity size={15} />,   label: 'Copiadores ativos',   value: fmtInt(stats.copiadores) },
+                    { icon: <BarChart3 size={15} />,  label: 'Operações copiadas',  value: fmtInt(stats.operacoes) },
+                    { icon: <TrendingUp size={15} />, label: 'Retorno médio (30D)', value: fmtPctSigned(stats.retorno), green: true },
+                    { icon: <Wallet size={15} />,     label: 'Comissão média',      value: `${stats.comissao.toFixed(1)}%` },
+                  ].map(s => (
+                    <div key={s.label} className="flex items-center gap-2.5">
+                      <span className="shrink-0 text-[#6B7A8E]">{s.icon}</span>
+                      <span className="vx-label min-w-0 flex-1 truncate text-[9.5px]">{s.label}</span>
+                      <span className={cn('shrink-0 text-[13px] font-bold', s.green ? 'text-[#1FD196]' : 'text-white')}>{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="vx-panel relative overflow-hidden p-5">
                 <h3 className="vx-h3 text-[15px]">Seja um Trader</h3>
                 <p className="vx-sub mt-3 max-w-[170px]">Compartilhe sua estratégia e ganhe comissões</p>
@@ -228,6 +365,7 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                 <Trophy size={74} className="pointer-events-none absolute -bottom-2 right-2 text-[#4B8CF5]/25" />
               </div>
             </div>
+          </div>
           </div>
         ) : (
           /* MY TRADERS tab */
