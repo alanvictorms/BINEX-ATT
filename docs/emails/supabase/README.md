@@ -9,6 +9,12 @@ colado lá, pra mudança de marca não depender de alguém lembrar de abrir o pa
 | Arquivo | Template no painel |
 |---|---|
 | `confirm-signup.html` | Confirm sign up |
+| `reset-password.html` | Reset password |
+
+> **Email OTP length precisa ser 6.** Fica em *Authentication → Providers →
+> Email*. O `OtpInput` do app tem 6 quadrados; com o campo em 8 (padrão do
+> Supabase em projetos novos) o código nunca fecha e a tela fica esperando dois
+> dígitos que não existem.
 
 ## Confirm sign up
 
@@ -24,6 +30,20 @@ Seu código de confirmação: {{ .Token }}
 ```
 
 Corpo: conteúdo de `confirm-signup.html`, colado na aba **Source**.
+
+## Reset password
+
+Mesma ideia: o template de fábrica manda só o link. A tela `/forgot-password`
+pede o **código**, então o corpo precisa de `{{ .Token }}`. O link continua no
+e-mail como alternativa — link de recuperação aberto no celular cai noutro
+navegador, e o fluxo PKCE do Supabase depende do cookie do navegador onde o
+pedido saiu; com o código, quem pediu no desktop termina no desktop.
+
+Assunto:
+
+```
+Seu código para redefinir a senha: {{ .Token }}
+```
 
 ## Configuração que acompanha
 

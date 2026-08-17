@@ -179,13 +179,17 @@ export const secureAuth = {
     })
   },
 
-  /** Confirma o cadastro com o código de 6 dígitos do e-mail. Devolve sessão. */
-  async verifyOtp(params: { email: string; token: string }): Promise<SecureResponse> {
+  /**
+   * Confirma o código do e-mail e devolve sessão.
+   * `type` 'signup' = confirmação de cadastro; 'recovery' = troca de senha.
+   */
+  async verifyOtp(params: { email: string; token: string; type?: 'signup' | 'recovery' }): Promise<SecureResponse> {
     return securePost({
       action: 'auth',
       authAction: 'verifyOtp',
       email: params.email,
       token: params.token,
+      otpType: params.type ?? 'signup',
     })
   },
 

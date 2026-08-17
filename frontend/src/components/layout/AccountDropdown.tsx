@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Eye, RefreshCw, Pencil, LogOut, ArrowRightLeft, BarChart2, User, Gem, PiggyBank, Wallet } from 'lucide-react'
+import { RefreshCw, LogOut, ArrowRightLeft, BarChart2, User, Gem, PiggyBank, Wallet, GraduationCap, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BRAND_DOMAIN } from '@/lib/brand'
 import { useStudioMode } from '@/lib/studioMode'
@@ -31,12 +31,69 @@ const menuItems = (actions: {
   onOperacoes: () => void
   onMinhaConta: () => void
 }) => [
-  { label: 'Depósito',    icon: <PiggyBank size={14} />,      action: actions.onDeposito },
-  { label: 'Retirada',    icon: <Wallet size={14} />,         action: actions.onRetirada },
-  { label: 'Transações',  icon: <ArrowRightLeft size={14} />, action: actions.onTransacoes },
-  { label: 'Operações',   icon: <BarChart2 size={14} />,      action: actions.onOperacoes },
-  { label: 'Minha Conta', icon: <User size={14} />,           action: actions.onMinhaConta },
+  { label: 'Depósito',    icon: <PiggyBank size={15} />,      action: actions.onDeposito },
+  { label: 'Retirada',    icon: <Wallet size={15} />,         action: actions.onRetirada },
+  { label: 'Transações',  icon: <ArrowRightLeft size={15} />, action: actions.onTransacoes },
+  { label: 'Operações',   icon: <BarChart2 size={15} />,      action: actions.onOperacoes },
+  { label: 'Minha Conta', icon: <User size={15} />,           action: actions.onMinhaConta },
 ]
+
+const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+
+/**
+ * Linha de conta do seletor. O saldo é o dado principal — é o que a pessoa veio
+ * conferir ao clicar no saldo do header —, então ele domina a linha e o resto é
+ * apoio.
+ */
+function ContaLinha({
+  tipo, saldo, ativo, onSelect, extra,
+}: {
+  tipo: 'real' | 'demo'
+  saldo: number
+  ativo: boolean
+  onSelect: () => void
+  extra?: React.ReactNode
+}) {
+  const isReal = tipo === 'real'
+  const Icone = isReal ? Gem : GraduationCap
+  const cor = isReal ? '#3FE0A6' : '#F0B429'
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors',
+        ativo
+          ? 'border-[#2E6BE6]/60 bg-[#101B2E]'
+          : 'border-[#16202D] bg-[#0A1017] hover:border-[#243448]',
+      )}
+    >
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+        style={{ borderColor: `${cor}40`, backgroundColor: `${cor}14`, color: cor }}
+      >
+        <Icone size={16} />
+      </span>
+
+      <span className="flex min-w-0 flex-1 flex-col leading-none">
+        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7E8DA2]">
+          {isReal ? 'Conta real' : 'Conta demo'}
+        </span>
+        <span className="mt-2 truncate text-[15px] font-bold tabular-nums text-white">{fmt(saldo)}</span>
+      </span>
+
+      {extra}
+
+      <span className={cn(
+        'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+        ativo ? 'border-[#2E6BE6] bg-[#2E6BE6]' : 'border-[#2A3A4D]',
+      )}>
+        {ativo && <Check size={11} strokeWidth={3} className="text-white" />}
+      </span>
+    </button>
+  )
+}
 
 export function AccountDropdown({
   isDemo,
@@ -58,16 +115,14 @@ export function AccountDropdown({
   const ref = useRef<HTMLDivElement>(null)
   const [resetting, setResetting] = useState(false)
 
-  // Studio Mode: overrides cosmeticos de identidade + esconder MUDAR
-  const studioEnabled              = useStudioMode(s => s.enabled)
-  const studioIdentityEnabled      = useStudioMode(s => s.customIdentityEnabled)
-  const studioCustomName           = useStudioMode(s => s.customName)
-  const studioCustomEmail          = useStudioMode(s => s.customEmail)
-  const studioHideMudar            = useStudioMode(s => s.hideMudarButton)
+  // Studio Mode: overrides cosmeticos de identidade
+  const studioEnabled         = useStudioMode(s => s.enabled)
+  const studioIdentityEnabled = useStudioMode(s => s.customIdentityEnabled)
+  const studioCustomName      = useStudioMode(s => s.customName)
+  const studioCustomEmail     = useStudioMode(s => s.customEmail)
   const displayUser = studioEnabled && studioIdentityEnabled
     ? (studioCustomName || studioCustomEmail || userEmail)
     : userEmail
-  const hideMudar = studioEnabled && studioHideMudar
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -86,148 +141,72 @@ export function AccountDropdown({
   }
 
   const shortId = userId ? userId.slice(0, 8).toUpperCase() : '--------'
-
   const items = menuItems({ onDeposito, onRetirada, onTransacoes, onOperacoes, onMinhaConta })
 
   return (
     <div
       ref={ref}
-      className="fixed top-14 left-1/2 -translate-x-1/2 lg:absolute lg:top-full lg:left-auto lg:right-0 lg:translate-x-0 mt-0 lg:mt-1 z-50 flex flex-col lg:flex-row shadow-2xl rounded-xl overflow-hidden border border-[#16202D] w-[calc(100vw-1.5rem)] max-w-[420px] lg:w-auto lg:max-w-none lg:min-w-[480px] max-h-[80vh] overflow-y-auto lg:overflow-y-visible"
+      className="fixed left-1/2 top-14 z-50 flex w-[calc(100vw-1.5rem)] max-w-[420px] -translate-x-1/2 flex-col overflow-hidden overflow-y-auto rounded-xl border border-[#1B2735] shadow-[0_30px_80px_rgba(0,0,0,0.7)] lg:absolute lg:left-auto lg:right-0 lg:top-full lg:mt-1.5 lg:max-h-none lg:w-auto lg:min-w-[500px] lg:max-w-none lg:translate-x-0 lg:flex-row lg:overflow-y-visible"
+      style={{ maxHeight: 'min(80vh, 640px)' }}
     >
-      {/* Left panel — account info (em mobile/tablet vai em cima; em desktop, lado esquerdo) */}
-      <div className="bg-[#0E1620] w-full lg:w-[272px] lg:flex-shrink-0 p-4 flex flex-col gap-3">
-        {/* VIP row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Gem size={16} className="text-purple-400" />
-            <span className="text-xs text-[#7E8DA2] font-medium">VIP:</span>
-            <span className="text-xs text-white font-semibold">+4% de lucro</span>
+      {/* Contas — em mobile em cima, em desktop à esquerda */}
+      <div className="flex w-full flex-col gap-3 bg-[#0C131F] p-4 lg:w-[300px] lg:shrink-0">
+        {/* Identidade */}
+        <div className="leading-none">
+          <div className="truncate text-[13px] font-semibold text-white">
+            {displayUser || `usuario@${BRAND_DOMAIN}`}
           </div>
-          <button className="text-[#7E8DA2] hover:text-white transition-colors">
-            <Eye size={14} />
-          </button>
-        </div>
-
-        {/* User info */}
-        <div>
-          <div className="text-sm text-white font-medium truncate">{displayUser || `usuario@${BRAND_DOMAIN}`}</div>
-          <div className="text-xs text-[#7E8DA2] mt-0.5">ID: {shortId}</div>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-xs text-[#7E8DA2]">Moeda: BRL</span>
-            {!hideMudar && (
-              <button className="text-[10px] font-bold text-blue-400 border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-colors">
-                MUDAR
-              </button>
-            )}
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7A8E]">
+            <span>ID {shortId}</span>
+            <span className="h-2.5 w-px bg-[#243448]" />
+            <span>BRL</span>
           </div>
         </div>
 
         <div className="h-px bg-[#16202D]" />
 
-        {/* Real account */}
-        <div
-          onClick={onSelectReal}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onSelectReal()}
-          className={cn(
-            'w-full text-left rounded-lg p-3 transition-colors border cursor-pointer',
-            !isDemo ? 'border-blue-500/40 bg-blue-500/5' : 'border-transparent hover:bg-white/5'
-          )}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className={cn(
-              'w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-              !isDemo ? 'border-blue-500' : 'border-[#4a4f5e]'
-            )}>
-              {!isDemo && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+        <ContaLinha tipo="real" saldo={realBalance} ativo={!isDemo} onSelect={onSelectReal} />
+        <ContaLinha
+          tipo="demo"
+          saldo={demoBalance}
+          ativo={isDemo}
+          onSelect={onSelectDemo}
+          extra={
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Recarregar saldo demo"
+              title="Recarregar saldo demo"
+              onClick={handleResetDemo}
+              onKeyDown={e => { if (e.key === 'Enter') handleResetDemo(e as unknown as React.MouseEvent) }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#7E8DA2] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <RefreshCw size={13} className={resetting ? 'animate-spin' : ''} />
             </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-white">Conta real</div>
-              <div className="text-sm font-bold text-white mt-0.5">
-                R${realBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </div>
-              <div className="text-[11px] text-[#7E8DA2] mt-1">O limite diário não está definido</div>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="text-[10px] font-bold text-blue-400 mt-0.5 hover:text-blue-300 transition-colors tracking-wide"
-              >
-                DEFINIR O LIMITE
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Demo account */}
-        <div
-          onClick={onSelectDemo}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onSelectDemo()}
-          className={cn(
-            'w-full text-left rounded-lg p-3 transition-colors border cursor-pointer',
-            isDemo ? 'border-blue-500/40 bg-blue-500/5' : 'border-transparent hover:bg-white/5'
-          )}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className={cn(
-              'w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors',
-              isDemo ? 'border-blue-500 bg-blue-500' : 'border-[#4a4f5e]'
-            )}>
-              {isDemo && (
-                <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                  <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-white">Conta demo</div>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-[#7E8DA2] hover:text-white transition-colors"
-                >
-                  <Pencil size={12} />
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-sm font-bold text-white">
-                  R${demoBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-                <button
-                  onClick={handleResetDemo}
-                  disabled={resetting}
-                  className="text-[#7E8DA2] hover:text-white transition-colors disabled:opacity-50"
-                  title="Recarregar saldo demo"
-                >
-                  <RefreshCw size={12} className={resetting ? 'animate-spin' : ''} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
-      {/* Right panel — navigation (em mobile/tablet vai embaixo com borda superior; em desktop, lado direito) */}
-      <div className="bg-[#141720] w-full lg:w-[180px] lg:flex-shrink-0 flex flex-col py-2 border-t lg:border-t-0 lg:border-l border-[#16202D]">
+      {/* Navegação — em mobile embaixo, em desktop à direita */}
+      <div className="flex w-full flex-col border-t border-[#16202D] bg-[#0A101A] py-2 lg:w-[200px] lg:shrink-0 lg:border-l lg:border-t-0">
         {items.map((item) => (
           <button
             key={item.label}
             onClick={() => { item.action(); onClose() }}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors w-full text-left"
+            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-[#E4EBF5] transition-colors hover:bg-white/5"
           >
             <span className="text-[#7E8DA2]">{item.icon}</span>
             {item.label}
           </button>
         ))}
 
-        <div className="h-px bg-[#16202D] mx-4 my-2" />
+        <div className="mx-4 my-2 h-px bg-[#16202D]" />
 
         <button
           onClick={() => { onLogout(); onClose() }}
-          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
+          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-[#F0435A] transition-colors hover:bg-red-500/10"
         >
-          <LogOut size={14} />
+          <LogOut size={15} />
           Sair
         </button>
       </div>

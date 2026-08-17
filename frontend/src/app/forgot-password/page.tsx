@@ -1,18 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import { MailCheck, Loader2 } from 'lucide-react'
 import { secureAuth } from '@/lib/secureClient'
 import { BrandMark } from '@/components/brand/BrandMark'
+import { OtpInput } from '@/components/auth/OtpInput'
 import { useSiteBrand } from '@/lib/useSiteBrand'
 
+/**
+ * Recuperação de senha em duas etapas, por CÓDIGO.
+ *
+ * O link do e-mail continua funcionando (o template manda os dois), mas o
+ * caminho principal é o código: link de recuperação aberto no celular abre
+ * noutro navegador, e o fluxo PKCE do Supabase depende do cookie do navegador
+ * onde o pedido saiu. Com o código, quem pediu no desktop termina no desktop.
+ *
+ * O verifyOtp de 'recovery' devolve sessão — é ela que autoriza o updateUser da
+ * senha em /reset-password.
+ */
 export default function ForgotPasswordPage() {
+  const router    = useRouter()
   const siteBrand = useSiteBrand()
+
   const [email,   setEmail]   = useState('')
   const [loading, setLoading] = useState(false)
   const [sent,    setSent]    = useState(false)
   const [error,   setError]   = useState('')
+
+  const [otpError,   setOtpError]   = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpTry,     setOtpTry]     = useState(0)
+  const [cooldown,   setCooldown]   = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,76 +48,138 @@ export default function ForgotPasswordPage() {
       const { error } = await secureAuth.resetPasswordForEmail(email)
       if (error) throw error
       setSent(true)
-    } catch (err: any) {
-      setError('Não foi possível enviar o link. Verifique o e-mail e tente novamente.')
+      setCooldown(60)
+    } catch {
+      setError('Não foi possível enviar o código. Verifique o e-mail e tente novamente.')
     } finally {
       setLoading(false)
     }
   }
 
+  async function handleOtp(code: string) {
+    setOtpError('')
+    setOtpLoading(true)
+    try {
+      const { error } = await secureAuth.verifyOtp({ email, token: code, type: 'recovery' })
+      if (error) throw new Error(error.message)
+      router.replace('/reset-password')
+    } catch (err: any) {
+      const msg = (err.message ?? '').toLowerCase()
+      setOtpError(
+        msg.includes('expired')
+          ? 'Código expirado. Peça um novo.'
+          : 'Código inválido. Confira e tente de novo.',
+      )
+      setOtpTry(t => t + 1)
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    if (cooldown > 0) return
+    setOtpError('')
+    try {
+      await secureAuth.resetPasswordForEmail(email)
+      setCooldown(60)
+    } catch {
+      setOtpError('Não foi possível reenviar agora. Tente em alguns instantes.')
+    }
+  }
+
   return (
-    <div className="relative min-h-screen bg-[#060A11] flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-center py-3 sm:py-5 border-b border-white/5 flex-shrink-0">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#060A11]">
+      <div className="relative z-10 flex flex-shrink-0 items-center justify-center border-b border-white/5 py-3 sm:py-5">
         <div className="flex items-center gap-2">
           <BrandMark size={32} />
-          <span className="text-white font-bold text-lg tracking-widest">{siteBrand.name}</span>
+          <span className="text-lg font-bold tracking-widest text-white">{siteBrand.name}</span>
         </div>
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-start pt-4 sm:pt-12 px-4 overflow-y-auto pb-6">
-        <h1 className="text-white text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Recuperar senha</h1>
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-start overflow-y-auto px-4 pb-6 pt-4 sm:pt-12">
+        <h1 className="mb-4 text-xl font-bold text-white sm:mb-6 sm:text-2xl">Recuperar senha</h1>
 
-        <div className="w-full max-w-sm bg-[#0C131F]/90 backdrop-blur rounded-xl shadow-2xl border border-white/5 p-6">
+        <div className="w-full max-w-sm rounded-xl border border-[#1B2735] bg-[#0C131F] p-6 shadow-2xl">
           {sent ? (
-            <div className="flex flex-col gap-4 text-center">
-              <div className="text-green-400 text-4xl">✓</div>
-              <h2 className="text-white font-semibold text-lg">E-mail enviado</h2>
-              <p className="text-[#7E8DA2] text-sm leading-relaxed">
-                Se o e-mail <span className="text-white">{email}</span> estiver cadastrado,
-                você receberá um link para redefinir sua senha em alguns minutos.
+            <>
+              <div className="flex flex-col items-center text-center">
+                <span className="vx-ibox-green h-[52px] w-[52px]"><MailCheck size={22} /></span>
+                <h2 className="vx-h2 mt-4 text-[19px]">Digite o código</h2>
+                <p className="vx-sub mt-2.5">
+                  Enviamos um código para{' '}
+                  <span className="font-semibold text-[#E4EBF5]">{email}</span>.
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <OtpInput
+                  key={otpTry}
+                  disabled={otpLoading}
+                  error={!!otpError}
+                  onComplete={handleOtp}
+                  onChange={() => setOtpError('')}
+                />
+              </div>
+
+              {otpError && <p className="mt-4 text-center text-[12px] text-[#F0435A]">{otpError}</p>}
+              {otpLoading && (
+                <p className="vx-sub-sm mt-4 flex items-center justify-center gap-1.5">
+                  <Loader2 size={12} className="animate-spin" /> Verificando…
+                </p>
+              )}
+
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={cooldown > 0}
+                  className="vx-link disabled:cursor-not-allowed disabled:text-[#54637A]"
+                >
+                  {cooldown > 0 ? `Reenviar código em ${cooldown}s` : 'Reenviar código'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSent(false); setOtpError(''); setError('') }}
+                  className="vx-sub-sm transition-colors hover:text-white"
+                >
+                  Usar outro e-mail
+                </button>
+              </div>
+
+              <p className="vx-sub-sm mt-6 text-center leading-relaxed">
+                Verifique também a caixa de spam. O e-mail traz um link como alternativa —
+                ele funciona, mas o código é mais direto.
               </p>
-              <p className="text-[#7E8DA2] text-xs">
-                Verifique também a caixa de spam.
-              </p>
-              <Link
-                href="/login"
-                className="mt-2 w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors font-bold text-white flex items-center justify-center text-sm"
-              >
-                Voltar para login
-              </Link>
-            </div>
+            </>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <p className="text-[#7E8DA2] text-sm leading-relaxed">
-                Digite o e-mail da sua conta. Enviaremos um link para você definir uma nova senha.
+              <p className="vx-sub leading-relaxed">
+                Digite o e-mail da sua conta. Enviaremos um código para você definir uma nova senha.
               </p>
 
-              <div className="relative">
-                <span className="absolute -top-2.5 left-3 px-1 text-[10px] text-[#7E8DA2] bg-[#0C131F] z-10">E-mail</span>
+              <label className="vx-field">
+                <span className="text-[12px] font-medium text-[#AEBBCB]">E-mail</span>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full bg-transparent border border-[#1B2735] rounded-lg px-3 py-3 text-white text-sm outline-none focus:border-blue-500 transition-colors"
+                  placeholder="voce@email.com"
+                  className="vx-input py-[12px]"
                 />
-              </div>
+              </label>
 
-              {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+              {error && <p className="text-center text-[12px] text-[#F0435A]">{error}</p>}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors font-bold text-white flex items-center justify-center text-sm disabled:opacity-50"
+                className="vx-btn-blue w-full py-[13px] disabled:opacity-50"
               >
-                {loading ? 'Enviando...' : 'Enviar link de recuperação'}
+                {loading ? 'Enviando…' : 'Enviar código'}
               </button>
 
-              <Link
-                href="/login"
-                className="text-center text-blue-400 hover:text-blue-300 transition-colors text-xs"
-              >
+              <Link href="/login" className="vx-link justify-center text-[12px]">
                 Voltar para login
               </Link>
             </form>

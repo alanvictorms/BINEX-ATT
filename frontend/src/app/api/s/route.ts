@@ -58,6 +58,8 @@ interface ProxyPayload {
   email?: string
   password?: string
   token?: string
+  /** 'signup' confirma cadastro; 'recovery' confirma troca de senha. */
+  otpType?: 'signup' | 'recovery'
   name?: string
   metadata?: Record<string, unknown>
   // Para 'storage':
@@ -234,13 +236,14 @@ async function handleAuth(req: NextRequest, payload: ProxyPayload) {
       return successRes
     }
 
-    // Código de 6 dígitos do e-mail de confirmação de cadastro. Sai daqui com
-    // sessão estabelecida — os cookies são os mesmos que o login devolve.
+    // Código do e-mail: confirmação de cadastro ('signup') ou de troca de senha
+    // ('recovery'). Sai daqui com sessão estabelecida — os cookies são os mesmos
+    // que o login devolve, e é essa sessão que autoriza o updateUser da senha.
     case 'verifyOtp': {
       const { data, error } = await supabase.auth.verifyOtp({
         email: payload.email!,
         token: payload.token!,
-        type:  'signup',
+        type:  payload.otpType ?? 'signup',
       })
       if (error) {
         return NextResponse.json({ error: error.message, code: error.status }, { status: 400 })
