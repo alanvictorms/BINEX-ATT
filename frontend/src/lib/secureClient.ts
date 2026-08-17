@@ -179,6 +179,21 @@ export const secureAuth = {
     })
   },
 
+  /** Confirma o cadastro com o código de 6 dígitos do e-mail. Devolve sessão. */
+  async verifyOtp(params: { email: string; token: string }): Promise<SecureResponse> {
+    return securePost({
+      action: 'auth',
+      authAction: 'verifyOtp',
+      email: params.email,
+      token: params.token,
+    })
+  },
+
+  /** Reenvia o código de confirmação de cadastro. */
+  async resendSignupOtp(email: string): Promise<SecureResponse> {
+    return securePost({ action: 'auth', authAction: 'resendOtp', email })
+  },
+
   async signOut(): Promise<SecureResponse> {
     return securePost({ action: 'auth', authAction: 'logout' })
   },

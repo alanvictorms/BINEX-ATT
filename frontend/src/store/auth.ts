@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { secureAuth, secureDb, secureRpc } from '@/lib/secureClient'
 import { readAttribution, readAffiliateCode, clearAffiliateCode } from '@/lib/attribution'
@@ -47,6 +48,9 @@ interface AuthState {
 
   login:           (email: string, password: string) => Promise<void>
   register:        (name: string, email: string, password: string) => Promise<void>
+  /** Confirma o cadastro com o código de 6 dígitos do e-mail. */
+  confirmSignup:   (email: string, token: string) => Promise<void>
+  resendSignupOtp: (email: string) => Promise<void>
   logout:          () => Promise<void>
   init:            () => Promise<void>
   setIsDemo:       (v: boolean) => void
@@ -79,6 +83,35 @@ async function buildUser(supabaseUser: any, accounts: Account[]): Promise<User> 
     email:     supabaseUser.email ?? '',
     kycStatus: profile?.kyc_status ?? 'pending',
     accounts,
+  }
+}
+
+/**
+ * Fim do cadastro: monta o usuário e dispara os avisos de atribuição.
+ *
+ * Vive aqui fora porque o cadastro passou a terminar em DOIS lugares — direto
+ * (projeto sem confirmação de e-mail) ou depois do código de 6 dígitos. Deixar
+ * isso dentro do register faria o TrackFlow e o vínculo de afiliado sumirem
+ * justamente para quem confirma por e-mail, que é o caminho padrão.
+ */
+async function finishSignup(session: Session, set: (partial: Partial<AuthState>) => void) {
+  const accounts = await fetchAccounts(session.user.id)
+  const user = await buildUser(session.user, accounts)
+  set({ user, token: session.access_token })
+
+  // Avisa o TrackFlow do cadastro (server-side le o `ref` do JWT e dispara).
+  // Fire-and-forget: nao bloqueia nem quebra o cadastro se o tracker falhar.
+  fetch('/api/trackflow/register', {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }).catch(() => { /* tracker offline — ignora */ })
+
+  // Vincula ao afiliado (?aff=CODIGO), se houver. Fire-and-forget; o RPC usa
+  // auth.uid() do usuario recem-criado e e idempotente (1 afiliado por usuario).
+  const affCode = readAffiliateCode()
+  if (affCode) {
+    supabase.rpc('link_affiliate_referral', { p_code: affCode })
+      .then(() => clearAffiliateCode(), () => { /* falha no vinculo nao quebra o cadastro */ })
   }
 }
 
@@ -122,25 +155,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (error) throw new Error(error.message)
     // Após cookies serem setados pelo proxy, lê a sessão localmente
     const { data: { session } } = await supabase.auth.getSession()
+    // Sem sessão = projeto exige confirmação de e-mail. Quem chama abre a tela
+    // do código de 6 dígitos e termina em confirmSignup().
     if (!session) throw new Error('EMAIL_CONFIRMATION_REQUIRED')
-    const accounts = await fetchAccounts(session.user!.id)
-    const user = await buildUser(session.user!, accounts)
-    set({ user, token: session.access_token })
+    await finishSignup(session, set)
+  },
 
-    // Avisa o TrackFlow do cadastro (server-side le o `ref` do JWT e dispara).
-    // Fire-and-forget: nao bloqueia nem quebra o cadastro se o tracker falhar.
-    fetch('/api/trackflow/register', {
-      method:  'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    }).catch(() => { /* tracker offline — ignora */ })
+  confirmSignup: async (email, token) => {
+    const { error } = await secureAuth.verifyOtp({ email, token })
+    if (error) throw new Error(error.message)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Sessão não estabelecida')
+    await finishSignup(session, set)
+  },
 
-    // Vincula ao afiliado (?aff=CODIGO), se houver. Fire-and-forget; o RPC usa
-    // auth.uid() do usuario recem-criado e e idempotente (1 afiliado por usuario).
-    const affCode = readAffiliateCode()
-    if (affCode) {
-      supabase.rpc('link_affiliate_referral', { p_code: affCode })
-        .then(() => clearAffiliateCode(), () => { /* falha no vinculo nao quebra o cadastro */ })
-    }
+  resendSignupOtp: async (email) => {
+    const { error } = await secureAuth.resendSignupOtp(email)
+    if (error) throw new Error(error.message)
   },
 
   logout: async () => {

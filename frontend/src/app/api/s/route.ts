@@ -54,8 +54,10 @@ interface ProxyPayload {
   eq?: Record<string, unknown>
   // Para 'auth':
   authAction?: 'login' | 'register' | 'logout' | 'resetPassword' | 'updatePassword'
+    | 'verifyOtp' | 'resendOtp'
   email?: string
   password?: string
+  token?: string
   name?: string
   metadata?: Record<string, unknown>
   // Para 'storage':
@@ -230,6 +232,39 @@ async function handleAuth(req: NextRequest, payload: ProxyPayload) {
         successRes.cookies.set(c.name, c.value)
       })
       return successRes
+    }
+
+    // Código de 6 dígitos do e-mail de confirmação de cadastro. Sai daqui com
+    // sessão estabelecida — os cookies são os mesmos que o login devolve.
+    case 'verifyOtp': {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: payload.email!,
+        token: payload.token!,
+        type:  'signup',
+      })
+      if (error) {
+        return NextResponse.json({ error: error.message, code: error.status }, { status: 400 })
+      }
+      const responseData = {
+        user: data.user ? { id: data.user.id, email: data.user.email } : null,
+      }
+      const otpRes = NextResponse.json({ data: responseData })
+      res.cookies.getAll().forEach(c => {
+        otpRes.cookies.set(c.name, c.value)
+      })
+      return otpRes
+    }
+
+    // Reenvio do código. O Supabase já limita a frequência do lado dele; a tela
+    // ainda segura o botão por 60s pra não transformar erro de rate limit em UX.
+    case 'resendOtp': {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: payload.email! })
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+      const resendRes = NextResponse.json({ data: { success: true } })
+      res.cookies.getAll().forEach(c => {
+        resendRes.cookies.set(c.name, c.value)
+      })
+      return resendRes
     }
 
     case 'logout': {

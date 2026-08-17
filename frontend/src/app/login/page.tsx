@@ -1,14 +1,16 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, TrendingUp, Zap, BadgeCheck, Globe, ChevronDown,
+  MailCheck,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { supabase } from '@/lib/supabase'
 import { MfaChallenge } from '@/components/auth/MfaChallenge'
+import { OtpInput } from '@/components/auth/OtpInput'
 import { BrandMark } from '@/components/brand/BrandMark'
 import { useSiteBrand } from '@/lib/useSiteBrand'
 
@@ -45,8 +47,26 @@ function LoginPageInner() {
   )
   const login    = useAuthStore(s => s.login)
   const register = useAuthStore(s => s.register)
+  const confirmSignup   = useAuthStore(s => s.confirmSignup)
+  const resendSignupOtp = useAuthStore(s => s.resendSignupOtp)
 
   const [mfaStep, setMfaStep] = useState(false)
+
+  // Confirmação de e-mail por código. Guarda o e-mail que está esperando o
+  // código — é ele que vai no verifyOtp, não o campo da tela (o usuário pode
+  // trocar a aba e mexer no input enquanto o e-mail está a caminho).
+  const [otpEmail, setOtpEmail] = useState<string | null>(null)
+  const [otpError, setOtpError] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  // Remonta o OtpInput pra limpar os dígitos depois de um código recusado.
+  const [otpTry, setOtpTry] = useState(0)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -83,9 +103,47 @@ function LoginPageInner() {
     } catch (err: any) {
       const msg = err.message ?? ''
       if (msg.includes('Invalid login credentials')) setError('E-mail ou senha incorretos.')
+      // Conta criada e nunca confirmada: em vez de um beco sem saída ("confirme
+      // seu e-mail" e nada mais), manda um código novo e abre a tela do código.
+      else if (/email not confirmed|not confirmed/i.test(msg)) {
+        resendSignupOtp(email).catch(() => { /* o código anterior ainda vale */ })
+        setOtpEmail(email)
+        setCooldown(60)
+      }
       else setError('Erro ao entrar. Tente novamente.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleOtp(code: string) {
+    if (!otpEmail) return
+    setOtpError('')
+    setOtpLoading(true)
+    try {
+      await confirmSignup(otpEmail, code)
+      router.replace('/trade')
+    } catch (err: any) {
+      const msg = (err.message ?? '').toLowerCase()
+      setOtpError(
+        msg.includes('expired')
+          ? 'Código expirado. Peça um novo.'
+          : 'Código inválido. Confira e tente de novo.',
+      )
+      setOtpTry(t => t + 1)
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    if (!otpEmail || cooldown > 0) return
+    setOtpError('')
+    try {
+      await resendSignupOtp(otpEmail)
+      setCooldown(60)
+    } catch {
+      setOtpError('Não foi possível reenviar agora. Tente em alguns instantes.')
     }
   }
 
@@ -106,7 +164,7 @@ function LoginPageInner() {
       router.replace('/trade')
     } catch (err: any) {
       const msg = err.message ?? ''
-      if (msg.includes('EMAIL_CONFIRMATION_REQUIRED')) setError('Confirme seu e-mail antes de entrar.')
+      if (msg.includes('EMAIL_CONFIRMATION_REQUIRED')) { setOtpEmail(rEmail); setCooldown(60) }
       else if (msg.includes('already registered')) setError('Este e-mail já está em uso.')
       else setError('Erro ao criar conta. Tente novamente.')
     } finally {
@@ -174,6 +232,55 @@ function LoginPageInner() {
                 <div className="mt-6">
                   <MfaChallenge onSuccess={() => router.replace(redirectTo)} onCancel={handleMfaCancel} />
                 </div>
+              </>
+            ) : otpEmail ? (
+              <>
+                <div className="flex flex-col items-center text-center">
+                  <span className="vx-ibox-green h-[52px] w-[52px]"><MailCheck size={22} /></span>
+                  <h2 className="vx-h2 mt-4">Confirme seu e-mail</h2>
+                  <p className="vx-sub mt-2.5">
+                    Enviamos um código de 6 dígitos para{' '}
+                    <span className="font-semibold text-[#E4EBF5]">{otpEmail}</span>.
+                  </p>
+                </div>
+
+                <div className="mt-6">
+                  <OtpInput
+                    key={otpTry}
+                    disabled={otpLoading}
+                    error={!!otpError}
+                    onComplete={handleOtp}
+                    onChange={() => setOtpError('')}
+                  />
+                </div>
+
+                {otpError && (
+                  <p data-testid="otp-error" className="mt-4 text-center text-[12px] text-[#F0435A]">{otpError}</p>
+                )}
+                {otpLoading && <p className="vx-sub-sm mt-4 text-center">Verificando…</p>}
+
+                <div className="mt-6 flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={cooldown > 0}
+                    className="vx-link disabled:cursor-not-allowed disabled:text-[#54637A]"
+                  >
+                    {cooldown > 0 ? `Reenviar código em ${cooldown}s` : 'Reenviar código'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setOtpEmail(null); setOtpError(''); setError('') }}
+                    className="vx-sub-sm transition-colors hover:text-white"
+                  >
+                    Usar outro e-mail
+                  </button>
+                </div>
+
+                <p className="vx-sub-sm mt-6 text-center leading-relaxed">
+                  Não achou? O código costuma chegar em menos de um minuto — vale conferir
+                  a caixa de spam antes de pedir outro.
+                </p>
               </>
             ) : (
               <>
