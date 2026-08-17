@@ -1,16 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Brain, Users, Wallet, TrendingUp, ShieldCheck,
   ArrowDownCircle, ArrowUpCircle, MessageSquare, UserPlus, Copy,
-  Trophy, Gift, Zap, BarChart2, Clock, Cpu, Settings, ChevronRight,
-  LogOut, Lock, FileSearch, X, Activity, Globe, Gauge, Database, Megaphone, Ticket,
+  Trophy, Gift, Zap, BarChart2, Clock, Cpu, Settings,
+  LogOut, Lock, FileSearch, X, Activity, Globe, Database, Megaphone, Ticket,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/store/auth'
-import { useRouter } from 'next/navigation'
 
 type NavItem = { label: string; href: string; icon: any }
 type NavSection = { title: string; items: NavItem[] }
@@ -79,9 +77,43 @@ const SECTIONS: NavSection[] = [
   },
 ]
 
+export const PAGE_META: Record<string, { title: string; desc: string }> = {
+  '/admin':                    { title: 'Visão geral da plataforma', desc: 'Fluxo financeiro, resultado da casa e comportamento dos usuários em um só lugar.' },
+  '/admin/analise-ia':         { title: 'Análise com IA',            desc: 'Leitura assistida de risco e padrões de operação.' },
+  '/admin/usuarios':           { title: 'Usuários',                  desc: 'Base completa, saldos, volume negociado e resultado por conta.' },
+  '/admin/verificacao':        { title: 'Verificação de identidade', desc: 'Fila de KYC: documentos, selfie e decisão de aprovação.' },
+  '/admin/afiliados':          { title: 'Afiliados',                 desc: 'Códigos, indicações qualificadas e comissões a pagar.' },
+  '/admin/tickets':            { title: 'Atendimento',               desc: 'Tickets abertos, tempo de resposta e prioridade.' },
+  '/admin/carteira':           { title: 'Carteira da plataforma',    desc: 'Exposição, saldos e movimentações consolidadas.' },
+  '/admin/depositos':          { title: 'Depósitos',                 desc: 'Entradas via PIX, conversão e confirmações manuais.' },
+  '/admin/saques':             { title: 'Saques',                    desc: 'Aprovação, risco AML e execução de pagamentos.' },
+  '/admin/operacoes':          { title: 'Operações',                 desc: 'Histórico de trades, resultado e ajustes administrativos.' },
+  '/admin/copy-trading':       { title: 'Copy Trading',              desc: 'Traders publicados, assinaturas e resultado da casa.' },
+  '/admin/boosters':           { title: 'Boosters',                  desc: 'Campanhas, loja de boosters e compras dos usuários.' },
+  '/admin/ranking':            { title: 'Ranking',                   desc: 'Competições e classificação dos usuários.' },
+  '/admin/ativos':             { title: 'Ativos de mercado',         desc: 'Payout, ordenação e disponibilidade de cada ativo.' },
+  '/admin/horario':            { title: 'Horário de mercado',        desc: 'Janelas de negociação por ativo.' },
+  '/admin/otc':                { title: 'Cadastro OTC',              desc: 'Parâmetros sintéticos e mesa de risco em tempo real.' },
+  '/admin/deriv':              { title: 'Provedor Deriv',            desc: 'Fonte de histórico de candles e cobertura por ativo.' },
+  '/admin/niveis':             { title: 'Níveis',                    desc: 'Progressão e benefícios por nível.' },
+  '/admin/bonus':              { title: 'Bônus',                     desc: 'Escada de bônus por depósito e rollover ativo.' },
+  '/admin/cupons':             { title: 'Cupons',                    desc: 'Códigos promocionais, limites e uso.' },
+  '/admin/provedor-liquidez':  { title: 'Provedor de liquidez',      desc: 'Ajuste de resultado, ordens abertas e força por ativo.' },
+  '/admin/banners':            { title: 'Banners promocionais',      desc: 'Peças exibidas na plataforma e destino de cada clique.' },
+  '/admin/site':               { title: 'Site / Landing page',       desc: 'Conteúdo público, SEO e dados institucionais.' },
+  '/admin/configuracoes':      { title: 'Configurações',             desc: 'Parâmetros operacionais e credenciais de provedores.' },
+  '/admin/seguranca/2fa':      { title: 'Segurança (2FA)',           desc: 'Autenticação em dois fatores da conta administrativa.' },
+  '/admin/audit-log':          { title: 'Audit log',                 desc: 'Trilha completa de ações administrativas.' },
+}
+
 export function AdminSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname()
   const router   = useRouter()
+
+  async function sair() {
+    await useAuthStore.getState().logout()
+    router.replace('/')
+  }
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
@@ -89,78 +121,50 @@ export function AdminSidebar({ open = false, onClose }: { open?: boolean; onClos
   return (
     <>
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
-          onClick={onClose}
-          aria-hidden
-        />
+        <div className="fixed inset-0 z-50 bg-black/60 md:hidden" data-nx-scrim onClick={onClose} aria-hidden />
       )}
 
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-[220px] flex-shrink-0 bg-[#060A11] border-r border-[#1e2433] flex flex-col h-full transition-transform duration-200 ease-out',
-          'md:static md:z-auto md:translate-x-0 md:transition-none',
-          open ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        {/* Logo */}
-        <div className="px-4 py-4 border-b border-[#1e2433] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
-              <LayoutDashboard size={16} className="text-white" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-white leading-tight">Admin Panel</div>
-              <div className="text-[10px] text-[#4b5563]">Gerenciamento</div>
-            </div>
+      <aside className="nx-side" data-open={open} data-testid="admin-sidebar">
+        <div className="nx-side__head">
+          <div>
+            <div className="nx-side__title">Navegação</div>
+            <div className="nx-side__sub">Gerenciamento</div>
           </div>
           <button
             onClick={onClose}
-            className="md:hidden p-1.5 -mr-1.5 rounded-lg text-[#6b7280] hover:text-white hover:bg-white/5 transition-colors"
+            className="md:hidden p-1.5 rounded-lg text-[#6b7280] hover:bg-white/5"
             aria-label="Fechar menu"
+            data-testid="sidebar-close-button"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2">
-          {SECTIONS.map((section) => (
-            <div key={section.title} className="mb-3">
-              <div className="px-3 pt-2 pb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#4b5563]">
-                  {section.title}
-                </span>
-              </div>
+        <nav className="nx-side__nav">
+          {SECTIONS.map(section => (
+            <div key={section.title} className="nx-side__group">
+              <div className="nx-side__grouptitle">{section.title}</div>
               {section.items.map(({ label, href, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
                   onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 text-[13px] font-medium transition-colors group',
-                    isActive(href)
-                      ? 'bg-green-500/15 text-green-400'
-                      : 'text-[#6b7280] hover:text-white hover:bg-white/5'
-                  )}
+                  className="nx-item"
+                  data-active={isActive(href)}
+                  data-testid={`nav-${href.replace(/\//g, '-').replace(/^-/, '')}`}
                 >
-                  <Icon size={15} className={cn('flex-shrink-0', isActive(href) ? 'text-green-400' : 'text-[#4b5563] group-hover:text-white')} />
-                  <span className="flex-1 leading-tight">{label}</span>
-                  {isActive(href) && <ChevronRight size={12} className="text-green-400 flex-shrink-0" />}
+                  <Icon size={15} />
+                  <span>{label}</span>
                 </Link>
               ))}
             </div>
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="px-2 pb-4 border-t border-[#1e2433] pt-2">
-          <button
-            onClick={() => { useAuthStore.getState().logout(); router.replace('/') }}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg w-full text-[13px] font-medium text-[#6b7280] hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <LogOut size={15} className="flex-shrink-0" />
-            Sair
+        <div className="nx-side__foot">
+          <button className="nx-item w-full" onClick={sair} data-testid="logout-button">
+            <LogOut size={15} />
+            <span>Sair</span>
           </button>
         </div>
       </aside>

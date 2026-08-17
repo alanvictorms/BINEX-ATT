@@ -1,82 +1,86 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   ADMIN SKIN — tema dark/light do painel administrativo.
+   ADMIN SKIN v2 — redesenho completo do painel (referência: dashboard azul,
+   cartões brancos flutuantes, sidebar em painel solto).
 
-   Todo o visual do admin sai DAQUI. As 23 páginas do painel não usam nenhuma
-   classe do design system (`vx-*`): elas escrevem hex na mão (#0C131F,
-   #1e2433, …), os mesmos ~30 tons repetidos cerca de 900 vezes. Em vez de
-   reescrever 23 arquivos, este arquivo redefine essas próprias classes
-   utilitárias dentro do escopo `.admin-skin` e as amarra a variáveis que
-   trocam junto com o tema.
+   As 23 telas do painel escrevem hex na mão (#0C131F, #1e2433, …). Em vez de
+   reescrever 11 mil linhas, este arquivo redefine essas mesmas classes
+   utilitárias dentro do escopo `.admin-skin` e as amarra a tokens que trocam
+   com o tema. Nenhuma variável de conteúdo das páginas foi tocada.
 
-   Por que funciona sem `!important`: o Tailwind v4 emite as utilities dentro de
-   uma cascade layer, e CSS fora de layer ganha de qualquer layer,
-   independentemente de especificidade. Este arquivo está fora de propósito.
-
-   Escopo: só o que estiver dentro de `.admin-skin` (o wrapper de
-   app/admin/layout.tsx). A plataforma do cliente não é tocada.
-
-   LIMITE HONESTO: isto é pele, não reforma. Cor, profundidade, tipografia,
-   densidade e estados mudam; a planta baixa — o que fica onde — é a mesma.
-   Página nova com hex que não esteja mapeado aqui passa direto e fica fora do
-   tema: ao criar tela de admin, reaproveite os tons já usados.
+   Funciona sem `!important` porque o Tailwind v4 emite utilities dentro de uma
+   cascade layer — CSS fora de layer ganha de qualquer layer.
    ══════════════════════════════════════════════════════════════════════════ */
 
 .admin-skin {
-  color-scheme: dark;
-
-  --adm-bg:        #070B12;
-  --adm-bg-2:      #0A0F18;
-  --adm-surface:   #0E1420;
-  --adm-surface-2: #131B29;
-  --adm-surface-3: #1A2434;
-  --adm-border:    #1C2739;
-  --adm-border-2:  #283549;
-
-  --adm-text:   #E8EEF9;
-  --adm-text-2: #B3C1D6;
-  --adm-text-3: #7C8BA5;
-  --adm-text-4: #5B6A82;
-
-  --adm-accent:      #3B82F6;
-  --adm-accent-2:    #7CB0FB;
-  --adm-accent-soft: rgba(59, 130, 246, 0.14);
-  --adm-success:     #22C98B;
-  --adm-danger:      #F2495F;
-  --adm-warn:        #F0B429;
-
-  --adm-hover:  rgba(255, 255, 255, 0.045);
-  --adm-scrim:  rgba(3, 6, 11, 0.78);
-  --adm-shadow: 0 1px 2px rgba(0, 0, 0, 0.40), 0 8px 24px -12px rgba(0, 0, 0, 0.60);
-  --adm-ring:   0 0 0 3px rgba(59, 130, 246, 0.22);
-}
-
-.admin-skin[data-theme='light'] {
   color-scheme: light;
 
-  --adm-bg:        #F2F5FA;
-  --adm-bg-2:      #E9EEF6;
+  --adm-accent:       #1D5EFF;
+  --adm-accent-2:     #1246CC;
+  --adm-accent-3:     #4C86FF;
+  --adm-accent-soft:  rgba(29, 94, 255, 0.09);
+  --adm-accent-ring:  rgba(29, 94, 255, 0.18);
+
+  --adm-bg:        #EEF1F7;
+  --adm-bg-2:      #F5F7FB;
   --adm-surface:   #FFFFFF;
-  --adm-surface-2: #F6F8FC;
-  --adm-surface-3: #EAF0F8;
-  --adm-border:    #DFE5EE;
-  --adm-border-2:  #C3CDDC;
+  --adm-surface-2: #F4F7FC;
+  --adm-surface-3: #E8EEF9;
+  --adm-border:    #E3E9F3;
+  --adm-border-2:  #CBD6E8;
 
-  --adm-text:   #0D1626;
-  --adm-text-2: #3B4759;
-  --adm-text-3: #64748B;
-  --adm-text-4: #8695A9;
+  --adm-text:   #0A1830;
+  --adm-text-2: #3C4B69;
+  --adm-text-3: #6C7C99;
+  --adm-text-4: #97A5BC;
 
-  --adm-accent:      #2563EB;
-  --adm-accent-2:    #1D4ED8;
-  --adm-accent-soft: rgba(37, 99, 235, 0.10);
-  --adm-success:     #0E9F6E;
-  --adm-danger:      #DC2A45;
-  --adm-warn:        #B45309;
+  --adm-success: #0FA968;
+  --adm-danger:  #E4344F;
+  --adm-warn:    #C77700;
 
-  --adm-hover:  rgba(13, 22, 38, 0.045);
-  --adm-scrim:  rgba(13, 22, 38, 0.45);
-  --adm-shadow: 0 1px 2px rgba(16, 30, 54, 0.06), 0 8px 24px -12px rgba(16, 30, 54, 0.18);
-  --adm-ring:   0 0 0 3px rgba(37, 99, 235, 0.16);
+  --adm-hover:  rgba(29, 94, 255, 0.06);
+  --adm-scrim:  rgba(9, 21, 44, 0.42);
+  --adm-shadow: 0 1px 2px rgba(15, 32, 66, 0.05), 0 14px 34px -18px rgba(15, 32, 66, 0.28);
+  --adm-shadow-lg: 0 24px 60px -24px rgba(11, 27, 60, 0.35);
+  --adm-ring:   0 0 0 4px var(--adm-accent-ring);
+
+  --adm-band-from: #1D5EFF;
+  --adm-band-to:   #0B3FCB;
+}
+
+.admin-skin[data-theme='dark'] {
+  color-scheme: dark;
+
+  --adm-accent:       #2E77FF;
+  --adm-accent-2:     #5A95FF;
+  --adm-accent-3:     #86B2FF;
+  --adm-accent-soft:  rgba(46, 119, 255, 0.16);
+  --adm-accent-ring:  rgba(46, 119, 255, 0.26);
+
+  --adm-bg:        #070C18;
+  --adm-bg-2:      #0A1120;
+  --adm-surface:   #0F1728;
+  --adm-surface-2: #131D31;
+  --adm-surface-3: #1A2740;
+  --adm-border:    #1B2740;
+  --adm-border-2:  #2A3A5C;
+
+  --adm-text:   #EAF0FB;
+  --adm-text-2: #B6C4DC;
+  --adm-text-3: #8393B1;
+  --adm-text-4: #647392;
+
+  --adm-success: #22C98B;
+  --adm-danger:  #FF5470;
+  --adm-warn:    #F0B429;
+
+  --adm-hover:  rgba(255, 255, 255, 0.05);
+  --adm-scrim:  rgba(3, 7, 16, 0.72);
+  --adm-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 36px -20px rgba(0, 0, 0, 0.75);
+  --adm-shadow-lg: 0 28px 70px -28px rgba(0, 0, 0, 0.85);
+  --adm-ring:   0 0 0 4px var(--adm-accent-ring);
+
+  --adm-band-from: #123B96;
+  --adm-band-to:   #0A1B3C;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
@@ -84,41 +88,311 @@
 .admin-skin {
   background-color: var(--adm-bg);
   color: var(--adm-text-2);
-  /* Números tabulares: em painel financeiro, coluna de valor que "dança" a
-     cada dígito é ruído puro. */
+  font-family: var(--font-adm-sans), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 
-.admin-skin h1 { letter-spacing: -0.022em; }
-.admin-skin h2,
-.admin-skin h3 { letter-spacing: -0.014em; }
+.admin-skin h1 { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.03em; }
+.admin-skin h2 { font-weight: 800; letter-spacing: -0.02em; }
+.admin-skin h3 { font-weight: 700; letter-spacing: -0.015em; }
+.admin-skin .font-mono { font-family: var(--font-adm-mono), 'IBM Plex Mono', ui-monospace, monospace; }
+
+/* ══ SHELL ════════════════════════════════════════════════════════════════ */
+
+.nx-root {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--adm-bg);
+}
+
+.nx-topbar {
+  position: relative;
+  flex-shrink: 0;
+  padding: 0 20px 22px;
+  background:
+    radial-gradient(900px 300px at 82% -30%, rgba(255, 255, 255, 0.22), transparent 70%),
+    linear-gradient(148deg, var(--adm-band-from), var(--adm-band-to));
+  color: #fff;
+}
+.nx-topbar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 75%);
+}
+
+.nx-nav {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 66px;
+}
+
+.nx-brand { display: flex; align-items: center; gap: 10px; }
+.nx-brand__mark {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  width: 34px;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--adm-accent);
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
+.nx-brand__name {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.nx-toplinks { display: none; align-items: center; gap: 4px; margin-left: 10px; }
+@media (min-width: 1100px) { .nx-toplinks { display: flex; } }
+.nx-toplink {
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.nx-toplink:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.nx-toplink[data-active='true'] { color: #fff; background: rgba(255, 255, 255, 0.18); }
+
+.nx-search { position: relative; margin-left: auto; width: 100%; max-width: 330px; display: none; }
+@media (min-width: 780px) { .nx-search { display: block; } }
+.nx-search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.65); }
+.nx-search input {
+  width: 100%;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.13);
+  padding: 0 14px 0 36px;
+  font-size: 12.5px;
+  color: #fff;
+  outline: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.nx-search input::placeholder { color: rgba(255, 255, 255, 0.66); }
+.nx-search input:focus { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.5); box-shadow: none; }
+
+.nx-iconbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+.nx-iconbtn:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
+.nx-iconbtn__dot {
+  position: absolute;
+  top: 7px; right: 8px;
+  height: 6px; width: 6px;
+  border-radius: 999px;
+  background: #FFC53D;
+  box-shadow: 0 0 0 2px rgba(29, 94, 255, 0.9);
+}
+.nx-menubtn { display: grid; }
+@media (min-width: 768px) { .nx-menubtn { display: none; } }
+
+.nx-avatar {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: #fff;
+  color: var(--adm-accent-2);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.nx-hero { position: relative; z-index: 1; padding: 10px 4px 2px; }
+.nx-hero__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+.nx-hero__title {
+  margin-top: 8px;
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: #fff;
+}
+.nx-hero__sub { margin-top: 6px; font-size: 12.5px; color: rgba(255, 255, 255, 0.72); max-width: 62ch; }
+
+.nx-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 18px;
+  padding: 16px 20px 18px;
+}
+
+.nx-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: 22px;
+  border: 1px solid var(--adm-border);
+  background: var(--adm-bg-2);
+  box-shadow: var(--adm-shadow-lg);
+}
+
+/* ── Sidebar (painel solto sobre a faixa azul) ─────────────────────────── */
+
+.nx-side {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 254px;
+  flex-shrink: 0;
+  border-radius: 0 22px 22px 0;
+  border: 1px solid var(--adm-border);
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow-lg);
+  transform: translateX(-102%);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nx-side[data-open='true'] { transform: translateX(0); z-index: 60; }
+
+@media (min-width: 768px) {
+  .nx-side {
+    position: relative;
+    inset: auto;
+    z-index: 1;
+    transform: none;
+    margin-top: 0;
+    height: 100%;
+    min-height: 0;
+    border-radius: 22px;
+  }
+}
+
+.nx-side__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 18px 14px;
+}
+.nx-side__title { font-size: 13px; font-weight: 800; color: var(--adm-text); letter-spacing: -0.02em; }
+.nx-side__sub { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--adm-text-4); margin-top: 3px; }
+
+.nx-side__nav { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 12px 10px; }
+.nx-side__group + .nx-side__group { margin-top: 16px; }
+.nx-side__grouptitle {
+  padding: 0 10px 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--adm-text-4);
+}
+
+.nx-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  margin-bottom: 2px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--adm-text-2);
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.nx-item svg { color: var(--adm-text-4); transition: color 0.16s ease; flex-shrink: 0; }
+.nx-item:hover { background: var(--adm-accent-soft); color: var(--adm-text); transform: translateX(2px); }
+.nx-item:hover svg { color: var(--adm-accent); }
+.nx-item[data-active='true'] {
+  background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-2));
+  color: #fff;
+  box-shadow: 0 10px 22px -12px rgba(29, 94, 255, 0.8);
+}
+.nx-item[data-active='true'] svg { color: #fff; }
+
+.nx-side__foot { padding: 10px 12px 14px; border-top: 1px solid var(--adm-border); }
+
+/* ══ REMAPEAMENTO DAS CLASSES LEGADAS DAS 23 TELAS ════════════════════════ */
 
 /* ── Superfícies ─────────────────────────────────────────────────────────── */
 
-.admin-skin .bg-\[\#060A11\] { background-color: var(--adm-bg); }
-.admin-skin .bg-\[\#0a0e16\] { background-color: var(--adm-bg-2); }
+.admin-skin .bg-\[\#060A11\],
+.admin-skin .bg-\[\#0a0e16\] { background-color: var(--adm-surface-2); }
 
 .admin-skin .bg-\[\#0C131F\],
-.admin-skin .bg-\[\#0A101A\] { background-color: var(--adm-surface); }
-
+.admin-skin .bg-\[\#0A101A\],
 .admin-skin .bg-\[\#111827\],
 .admin-skin .bg-\[\#0d1117\],
+.admin-skin .bg-\[\#0E1620\],
+.admin-skin .bg-\[\#1a2235\],
+.admin-skin .bg-\[\#0F1A2C\] { background-color: var(--adm-surface); }
+
 .admin-skin .bg-\[\#0A1017\],
 .admin-skin .bg-\[\#101825\],
+.admin-skin .bg-\[\#0C1320\],
+.admin-skin .bg-\[\#151c2c\],
 .admin-skin .bg-\[\#1a1f2e\] { background-color: var(--adm-surface-2); }
 
 .admin-skin .bg-\[\#1a2030\],
-.admin-skin .bg-\[\#1a2235\],
-.admin-skin .bg-\[\#151c2c\],
-.admin-skin .bg-\[\#232b3d\],
+.admin-skin .bg-\[\#16202D\],
+.admin-skin .bg-\[\#1e2433\],
+.admin-skin .bg-\[\#1B2735\],
+.admin-skin .bg-\[\#1E2A39\],
+.admin-skin .bg-\[\#2a3448\],
 .admin-skin .hover\:bg-\[\#232b3d\]:hover { background-color: var(--adm-surface-3); }
 
-/* Cartão com elevação de verdade: sem sombra, "escuro sobre escuro" vira só um
-   retângulo levemente diferente do fundo. */
+.admin-skin .bg-\[\#153A2D\],
+.admin-skin .bg-\[\#0F2A21\],
+.admin-skin .bg-\[\#0D2E23\],
+.admin-skin .bg-\[\#0A2A20\] { background-color: rgba(15, 169, 104, 0.12); }
+.admin-skin .bg-\[\#13233C\],
+.admin-skin .bg-\[\#111E33\] { background-color: var(--adm-accent-soft); }
+.admin-skin .bg-\[\#2A2010\] { background-color: rgba(199, 119, 0, 0.12); }
+.admin-skin .bg-\[\#1B1430\] { background-color: rgba(124, 82, 255, 0.12); }
+
+/* Cartão: raio maior, elevação de verdade e respiro — a base do redesenho. */
+.admin-skin .rounded-xl { border-radius: 18px; }
+.admin-skin .rounded-lg { border-radius: 13px; }
+.admin-skin .rounded-\[10px\] { border-radius: 13px; }
+.admin-skin .rounded-md { border-radius: 9px; }
+
 .admin-skin .rounded-xl.border,
 .admin-skin .rounded-lg.border,
-.admin-skin .rounded-\[10px\].border { box-shadow: var(--adm-shadow); }
+.admin-skin .rounded-\[10px\].border,
+.admin-skin .rounded-xl.border-\[\#16202D\],
+.admin-skin .rounded-xl.border-\[\#1e2433\] { box-shadow: var(--adm-shadow); }
+
+.admin-skin .shadow-2xl { box-shadow: var(--adm-shadow-lg); }
 
 /* ── Bordas ──────────────────────────────────────────────────────────────── */
 
@@ -126,14 +400,29 @@
 .admin-skin .border-\[\#16202D\],
 .admin-skin .border-\[\#1B2735\],
 .admin-skin .border-\[\#18222F\],
-.admin-skin .border-\[\#141C28\] { border-color: var(--adm-border); }
+.admin-skin .border-\[\#141C28\],
+.admin-skin .border-\[\#1E2A39\] { border-color: var(--adm-border); }
 
 .admin-skin .border-\[\#2a3448\],
 .admin-skin .border-\[\#2A3A4D\],
 .admin-skin .border-\[\#3a4a60\],
+.admin-skin .border-\[\#26364A\],
 .admin-skin .hover\:border-\[\#2a3448\]:hover,
 .admin-skin .hover\:border-\[\#2A3A4D\]:hover,
+.admin-skin .hover\:border-\[\#2B3D52\]:hover,
 .admin-skin .hover\:border-\[\#3a4a60\]:hover { border-color: var(--adm-border-2); }
+
+.admin-skin .border-\[\#23406E\],
+.admin-skin .border-\[\#2E6BE6\],
+.admin-skin .hover\:border-\[\#2E6BE6\]:hover,
+.admin-skin .focus\:border-\[\#2E6BE6\]:focus { border-color: var(--adm-accent); }
+
+.admin-skin .border-\[\#1E5140\],
+.admin-skin .border-\[\#1FD196\],
+.admin-skin .border-\[\#2BD68F\],
+.admin-skin .border-\[\#2BC98E\] { border-color: rgba(15, 169, 104, 0.45); }
+.admin-skin .border-\[\#5A4620\] { border-color: rgba(199, 119, 0, 0.4); }
+.admin-skin .border-\[\#3A2A63\] { border-color: rgba(124, 82, 255, 0.4); }
 
 .admin-skin .divide-\[\#141C28\] > * + *,
 .admin-skin .divide-\[\#16202D\] > * + *,
@@ -141,71 +430,121 @@
 
 /* ── Texto ───────────────────────────────────────────────────────────────── */
 
-.admin-skin .text-white { color: var(--adm-text); }
+.admin-skin .text-white,
+.admin-skin .text-\[\#E4EBF5\],
+.admin-skin .text-\[\#EAF1FA\] { color: var(--adm-text); }
 
 .admin-skin .text-\[\#AEBBCB\],
 .admin-skin .text-\[\#C3CFDD\],
-.admin-skin .text-\[\#d1d5db\] { color: var(--adm-text-2); }
+.admin-skin .text-\[\#d1d5db\],
+.admin-skin .hover\:text-\[\#C3CFDD\]:hover { color: var(--adm-text-2); }
 
 .admin-skin .text-\[\#7E8DA2\],
 .admin-skin .text-\[\#9ca3af\],
 .admin-skin .text-\[\#8B9BB0\],
 .admin-skin .text-\[\#6B7A8E\],
+.admin-skin .text-\[\#7A8AA0\],
+.admin-skin .text-\[\#6b7280\],
 .admin-skin .hover\:text-\[\#9ca3af\]:hover,
 .admin-skin .hover\:text-\[\#7E8DA2\]:hover { color: var(--adm-text-3); }
 
-.admin-skin .text-\[\#6b7280\],
 .admin-skin .text-\[\#4b5563\],
 .admin-skin .text-\[\#4B5A6E\],
 .admin-skin .text-\[\#5B6A7E\],
-.admin-skin .text-\[\#54637A\] { color: var(--adm-text-4); }
+.admin-skin .text-\[\#54637A\],
+.admin-skin .text-\[\#2A3A4D\],
+.admin-skin .text-\[\#1B2735\] { color: var(--adm-text-4); }
 
 .admin-skin .placeholder-\[\#7E8DA2\]::placeholder,
 .admin-skin .placeholder-\[\#6b7280\]::placeholder,
+.admin-skin .placeholder-\[\#4b5563\]::placeholder,
 .admin-skin .placeholder-\[\#54637A\]::placeholder { color: var(--adm-text-4); }
+
+/* Rótulos de tabela e microtexto ganham voz própria no redesenho. */
+.admin-skin th {
+  font-size: 9.5px !important;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--adm-text-4);
+  white-space: nowrap;
+}
+.admin-skin thead tr { background: var(--adm-surface-2); }
 
 /* ── Acentos ─────────────────────────────────────────────────────────────── */
 
 .admin-skin .bg-\[\#1D5FE0\],
 .admin-skin .bg-\[\#2E6BE6\],
-.admin-skin .bg-\[\#6366f1\] { background-color: var(--adm-accent); }
+.admin-skin .bg-\[\#6366f1\],
+.admin-skin .bg-green-500,
+.admin-skin .bg-blue-500,
+.admin-skin .bg-blue-600,
+.admin-skin .hover\:bg-\[\#2A6DF0\]:hover { background-color: var(--adm-accent); }
+
+.admin-skin .hover\:bg-green-600:hover,
+.admin-skin .bg-green-600,
+.admin-skin .hover\:bg-blue-600:hover { background-color: var(--adm-accent-2); }
+
+.admin-skin .accent-\[\#1D5FE0\] { accent-color: var(--adm-accent); }
+.admin-skin input[type='checkbox'] { accent-color: var(--adm-accent); }
 
 .admin-skin .text-\[\#1D5FE0\],
 .admin-skin .text-\[\#2E6BE6\],
 .admin-skin .text-\[\#6366f1\],
-.admin-skin .text-\[\#6C9CF8\] { color: var(--adm-accent-2); }
-
-.admin-skin .border-\[\#2E6BE6\],
-.admin-skin .focus\:border-\[\#2E6BE6\]:focus { border-color: var(--adm-accent); }
+.admin-skin .text-\[\#6C9CF8\],
+.admin-skin .text-\[\#7FAAFF\],
+.admin-skin .text-\[\#4B8CF5\],
+.admin-skin .text-blue-400,
+.admin-skin .text-blue-500,
+.admin-skin .hover\:text-\[\#75A8FF\]:hover { color: var(--adm-accent); }
 
 .admin-skin .text-\[\#1FD196\],
+.admin-skin .text-\[\#3FE0A6\],
 .admin-skin .text-\[\#22c55e\],
-.admin-skin .text-\[\#3FE0A6\] { color: var(--adm-success); }
+.admin-skin .text-green-400,
+.admin-skin .text-green-500,
+.admin-skin .text-green-300 { color: var(--adm-success); }
 
 .admin-skin .bg-\[\#1FD196\],
 .admin-skin .hover\:bg-\[\#1FD196\]:hover { background-color: var(--adm-success); }
 
 .admin-skin .text-\[\#F0435A\],
-.admin-skin .text-\[\#ef4444\] { color: var(--adm-danger); }
+.admin-skin .text-\[\#ef4444\],
+.admin-skin .text-red-400,
+.admin-skin .text-red-500 { color: var(--adm-danger); }
+.admin-skin .bg-\[\#F0435A\] { background-color: var(--adm-danger); }
 
 .admin-skin .text-\[\#f59e0b\],
-.admin-skin .text-\[\#F0B429\] { color: var(--adm-warn); }
+.admin-skin .text-\[\#F0B429\],
+.admin-skin .text-yellow-400,
+.admin-skin .text-amber-400,
+.admin-skin .text-orange-400 { color: var(--adm-warn); }
 
-/* Cores utilitárias do Tailwind só sobrevivem no tema claro se escurecerem —
-   verde/vermelho/amarelo 400 sobre branco não têm contraste nenhum. */
-.admin-skin[data-theme='light'] .text-green-400,
-.admin-skin[data-theme='light'] .text-green-500  { color: var(--adm-success); }
-.admin-skin[data-theme='light'] .text-red-400,
-.admin-skin[data-theme='light'] .text-red-500    { color: var(--adm-danger); }
-.admin-skin[data-theme='light'] .text-yellow-400,
-.admin-skin[data-theme='light'] .text-amber-400  { color: var(--adm-warn); }
-.admin-skin[data-theme='light'] .text-blue-400   { color: var(--adm-accent-2); }
+.admin-skin .text-\[\#A98BFF\] { color: #7C52FF; }
+.admin-skin .text-\[\#052018\] { color: #fff; }
+
+/* Texto branco DEVE continuar branco sobre superfície saturada. */
+.admin-skin :is(
+  .bg-green-500, .bg-green-600, .bg-blue-500, .bg-blue-600, .bg-red-500, .bg-red-600,
+  .bg-purple-500, .bg-teal-500, .bg-orange-500, .bg-indigo-500, .bg-pink-500,
+  .bg-amber-500, .bg-emerald-500, .bg-\[\#1D5FE0\], .bg-\[\#2E6BE6\], .bg-\[\#6366f1\],
+  .bg-\[\#1FD196\], .bg-\[\#F0435A\]
+) { color: #fff; }
+
+.admin-skin :is(
+  .bg-green-500, .bg-green-600, .bg-blue-500, .bg-blue-600, .bg-red-500, .bg-red-600,
+  .bg-purple-500, .bg-teal-500, .bg-orange-500, .bg-indigo-500, .bg-pink-500,
+  .bg-amber-500, .bg-emerald-500, .bg-\[\#1D5FE0\], .bg-\[\#2E6BE6\], .bg-\[\#6366f1\],
+  .bg-\[\#1FD196\], .bg-\[\#F0435A\]
+) :is(.text-white, .text-\[\#AEBBCB\], .text-\[\#E4EBF5\]) { color: #fff; }
 
 /* ── Interação ───────────────────────────────────────────────────────────── */
 
-.admin-skin .bg-white\/5 { background-color: var(--adm-hover); }
+.admin-skin .bg-white\/5,
+.admin-skin .bg-white\/10 { background-color: var(--adm-hover); }
 .admin-skin .hover\:bg-white\/5:hover,
 .admin-skin .hover\:bg-white\/10:hover { background-color: var(--adm-hover); }
+.admin-skin .hover\:border-white\/30:hover { border-color: var(--adm-border-2); }
 
 .admin-skin .bg-black\/50,
 .admin-skin .bg-black\/60,
@@ -214,28 +553,118 @@
 
 .admin-skin input,
 .admin-skin select,
-.admin-skin textarea { transition: border-color .16s ease, box-shadow .16s ease; }
-
+.admin-skin textarea {
+  border-radius: 12px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+  color: var(--adm-text);
+}
 .admin-skin input:focus,
 .admin-skin select:focus,
-.admin-skin textarea:focus { box-shadow: var(--adm-ring); outline: none; }
+.admin-skin textarea:focus {
+  box-shadow: var(--adm-ring);
+  border-color: var(--adm-accent) !important;
+  outline: none;
+}
+.admin-skin select option { background: var(--adm-surface); color: var(--adm-text); }
+
+.admin-skin button { transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease; }
+.admin-skin button:not(:disabled):active { transform: translateY(1px); }
 
 /* Linha de tabela: o alvo inteiro reage, não só a célula sob o cursor. */
-.admin-skin tbody tr { transition: background-color .12s ease; }
+.admin-skin tbody tr { transition: background-color 0.12s ease; }
 .admin-skin tbody tr:hover { background-color: var(--adm-hover); }
+.admin-skin td { color: var(--adm-text-2); }
 
-/* ── Densidade (compacto) ────────────────────────────────────────────────── */
-/* Painel é ferramenta de trabalho: rolar menos vale mais que respirar mais.
-   Mexe só em padding e gap — nada de tamanho de fonte, que reflui texto e
-   quebra alinhamento de coluna. */
+/* ── Gráficos (recharts) ─────────────────────────────────────────────────── */
 
-.admin-skin .p-5   { padding: 1rem; }
-.admin-skin .p-4   { padding: 0.875rem; }
-.admin-skin .py-5  { padding-top: 1rem;    padding-bottom: 1rem; }
-.admin-skin .py-4  { padding-top: 0.8rem;  padding-bottom: 0.8rem; }
-.admin-skin .py-3  { padding-top: 0.55rem; padding-bottom: 0.55rem; }
-.admin-skin .gap-5 { gap: 1rem; }
-.admin-skin .gap-4 { gap: 0.85rem; }
+.admin-skin .recharts-cartesian-grid line { stroke: var(--adm-border) !important; }
+.admin-skin .recharts-cartesian-axis-line,
+.admin-skin .recharts-cartesian-axis-tick-line { stroke: var(--adm-border) !important; }
+.admin-skin .recharts-text tspan { fill: var(--adm-text-3) !important; font-size: 10.5px; }
+.admin-skin .recharts-legend-item-text { color: var(--adm-text-3) !important; }
+.admin-skin .recharts-tooltip-wrapper > div {
+  background: var(--adm-surface) !important;
+  border: 1px solid var(--adm-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--adm-shadow) !important;
+  color: var(--adm-text) !important;
+}
+
+/* ── Densidade e respiro (redesenho é mais arejado que o painel antigo) ──── */
+
+.admin-skin .p-5  { padding: 1.35rem; }
+.admin-skin .p-6  { padding: 1.6rem; }
+.admin-skin .py-3 { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+.admin-skin .gap-4 { gap: 1.05rem; }
+
+/* ── Modais padronizados (mesma camada, mesmo scrim, mesmo cartão) ───────── */
+
+.admin-skin .fixed.inset-0:not([data-nx-scrim]) {
+  z-index: 120;
+  padding: 22px;
+  background-color: var(--adm-scrim);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  overflow-y: auto;
+  animation: nx-fade 0.18s ease-out;
+}
+
+.admin-skin .fixed.inset-0:not([data-nx-scrim]) > * {
+  border-radius: 20px;
+  box-shadow: var(--adm-shadow-lg);
+  max-height: calc(100dvh - 44px);
+  animation: nx-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Cabeçalho fixo de modal segue a superfície do tema, não o hex antigo. */
+.admin-skin .fixed.inset-0:not([data-nx-scrim]) .sticky {
+  background: var(--adm-surface);
+  backdrop-filter: none;
+}
+
+@keyframes nx-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes nx-pop { from { opacity: 0; transform: translateY(10px) scale(0.985) } to { opacity: 1; transform: none } }
+
+/* ── Tabelas largas: cabeçalho e 1ª coluna fixos, rolagem suave ──────────── */
+
+.admin-skin .overflow-x-auto,
+.admin-skin .overflow-auto {
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+.admin-skin table { border-collapse: separate; border-spacing: 0; }
+
+.admin-skin thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--adm-surface-2);
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.admin-skin thead th:first-child { left: 0; z-index: 4; }
+
+.admin-skin tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--adm-surface);
+}
+.admin-skin tbody tr:hover td:first-child { background: var(--adm-surface-3); }
+
+/* Sombra de corte à direita da coluna congelada — indica que há mais colunas. */
+.admin-skin thead th:first-child::after,
+.admin-skin tbody td:first-child::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -10px;
+  bottom: 0;
+  width: 10px;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(15, 32, 66, 0.07), transparent);
+}
 
 /* ── Barra de rolagem ────────────────────────────────────────────────────── */
 
@@ -247,7 +676,4 @@
   background-clip: content-box;
   border-radius: 999px;
 }
-.admin-skin *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--adm-text-4);
-  background-clip: content-box;
-}
+.admin-skin *::-webkit-scrollbar-thumb:hover { background-color: var(--adm-text-4); background-clip: content-box; }

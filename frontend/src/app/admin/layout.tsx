@@ -1,40 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Plus_Jakarta_Sans, IBM_Plex_Mono } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
-import { AdminSidebar } from '@/components/admin/AdminSidebar'
-import { Loader2, Menu, Sun, Moon } from 'lucide-react'
+import { AdminSidebar, PAGE_META } from '@/components/admin/AdminSidebar'
+import { Bell, Loader2, Menu, Moon, Search, Sun, TrendingUp } from 'lucide-react'
 import './admin-skin.css'
+
+// As famílias que o admin-skin.css pede. Sem carregar aqui, o CSS caía no
+// system-ui e o painel ficava com a fonte do sistema — o desenho depende delas.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-adm-sans',
+  display: 'swap',
+})
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-adm-mono',
+  display: 'swap',
+})
 
 type AdmTheme = 'dark' | 'light'
 const THEME_KEY = 'admin:theme'
 
+const TOP_LINKS = ['Analytics', 'Operação', 'Tempo real', 'Tendências']
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
+  const pathname = usePathname()
   const user    = useAuthStore(s => s.user)
   const loading = useAuthStore(s => s.loading)
 
   const [adminCheck, setAdminCheck] = useState<'checking' | 'allowed' | 'denied'>('checking')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [theme, setTheme] = useState<AdmTheme>('light')
 
-  // Tema do painel. Lido depois da montagem de propósito: ler localStorage no
-  // primeiro render faria o HTML do servidor divergir do cliente.
-  const [theme, setTheme] = useState<AdmTheme>('dark')
-  useEffect(() => {
-    const salvo = window.localStorage.getItem(THEME_KEY)
-    if (salvo === 'light' || salvo === 'dark') setTheme(salvo)
-  }, [])
-
-  function toggleTheme() {
-    setTheme(t => {
-      const proximo: AdmTheme = t === 'dark' ? 'light' : 'dark'
-      window.localStorage.setItem(THEME_KEY, proximo)
-      return proximo
-    })
-  }
-
+  // Portão de acesso. É a única coisa que separa o painel do resto da internet:
+  // sem sessão vai pro login, sem is_admin volta pra plataforma. As RPCs também
+  // checam no servidor, mas deixar a tela abrir para qualquer um entregaria de
+  // graça a estrutura inteira do admin.
   useEffect(() => {
     if (loading) return
     if (!user) { router.replace('/login'); return }
@@ -52,12 +60,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => { cancelled = true }
   }, [user, loading, router])
 
-  // A gaveta fecha sozinha ao navegar: cada link da sidebar chama onClose no clique.
+  useEffect(() => {
+    const salvo = window.localStorage.getItem(THEME_KEY)
+    if (salvo === 'light' || salvo === 'dark') setTheme(salvo)
+  }, [])
+
+  function toggleTheme() {
+    setTheme(t => {
+      const proximo: AdmTheme = t === 'dark' ? 'light' : 'dark'
+      window.localStorage.setItem(THEME_KEY, proximo)
+      return proximo
+    })
+  }
+
+  // Iniciais de quem está logado — o "AD" fixo dizia a mesma coisa para todo
+  // admin, e num painel com audit log importa saber com qual conta você está.
+  const iniciais = useMemo(() => {
+    const base = (user?.name || user?.email || '').trim()
+    if (!base) return 'AD'
+    const partes = base.split(/[\s.@_-]+/).filter(Boolean)
+    return ((partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '')).toUpperCase() || base.slice(0, 2).toUpperCase()
+  }, [user?.name, user?.email])
+
+  const meta = PAGE_META[pathname] ?? PAGE_META['/admin']
 
   if (loading || adminCheck === 'checking') {
     return (
-      <div className="min-h-screen bg-[#060A11] flex items-center justify-center">
-        <Loader2 className="animate-spin text-green-400" size={32} />
+      <div className="flex h-[100dvh] items-center justify-center bg-[#EEF1F7]">
+        <Loader2 className="animate-spin text-[#1D5EFF]" size={32} />
       </div>
     )
   }
@@ -65,35 +95,64 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (adminCheck !== 'allowed') return null
 
   return (
-    <div className="admin-skin flex h-[100dvh] bg-[#060A11] overflow-hidden" data-theme={theme}>
-      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Barra de topo. O menu sanduíche continua só no mobile; a barra passou
-            a existir no desktop também para abrigar o seletor de tema. */}
-        <header className="flex items-center gap-3 h-12 px-4 border-b border-[#1e2433] bg-[#060A11] flex-shrink-0">
+    <div
+      className={`admin-skin nx-root ${jakarta.variable} ${plexMono.variable}`}
+      data-theme={theme}
+      data-testid="admin-shell"
+    >
+      <header className="nx-topbar">
+        <div className="nx-nav">
           <button
+            className="nx-iconbtn nx-menubtn"
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 -ml-2 rounded-lg text-[#9ca3af] hover:text-white hover:bg-white/5 transition-colors"
             aria-label="Abrir menu"
+            data-testid="sidebar-open-button"
           >
-            <Menu size={22} />
+            <Menu size={18} />
           </button>
-          <span className="md:hidden text-sm font-bold text-white">Admin Panel</span>
+
+          <div className="nx-brand">
+            <span className="nx-brand__mark"><TrendingUp size={17} /></span>
+            <span className="nx-brand__name">Admin Panel</span>
+          </div>
+
+          <nav className="nx-toplinks">
+            {TOP_LINKS.map((l, i) => (
+              <span key={l} className="nx-toplink" data-active={i === 0} data-testid={`topnav-${i}`}>{l}</span>
+            ))}
+          </nav>
+
+          <div className="nx-search">
+            <Search size={14} />
+            <input placeholder="Buscar por nome, e-mail ou ID" data-testid="global-search-input" />
+          </div>
+
+          <button className="nx-iconbtn" aria-label="Notificações" data-testid="notifications-button">
+            <Bell size={16} />
+            <span className="nx-iconbtn__dot" />
+          </button>
 
           <button
+            className="nx-iconbtn"
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[#1e2433] text-[#9ca3af] transition-colors hover:text-white hover:bg-white/5"
+            data-testid="theme-toggle-button"
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-        </header>
 
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+          <span className="nx-avatar" title={user?.email ?? ''} data-testid="admin-avatar">{iniciais}</span>
+        </div>
+
+        <div className="nx-hero">
+          <div className="nx-hero__eyebrow">Painel administrativo</div>
+          <h2 className="nx-hero__title" data-testid="page-hero-title">{meta.title}</h2>
+        </div>
+      </header>
+
+      <div className="nx-shell">
+        <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="nx-main" data-testid="admin-main">{children}</main>
       </div>
     </div>
   )
