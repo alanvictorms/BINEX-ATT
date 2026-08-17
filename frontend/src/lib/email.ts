@@ -1,5 +1,10 @@
 /**
- * E-mails transacionais via Resend (REST API).
+ * E-mails transacionais via SMTP (Hostinger).
+ *
+ * Saiu do Resend porque a caixa `noreply@` da Hostinger já existe e já é o que
+ * o Supabase Auth usa pros e-mails de autenticação — dois provedores pro mesmo
+ * remetente significaria verificar domínio, manter chave de API e explicar duas
+ * reputações de envio diferentes pro mesmo endereço.
  *
  * Regras:
  *  - Server-only (usa service role pra resolver o e-mail do usuário).
@@ -7,16 +12,43 @@
  *    (confirmação de depósito, pagamento de saque, etc.).
  *  - Dedup por (kind, ref_id) na tabela email_log — webhook reentregue ou
  *    clique duplo não reenvia o mesmo e-mail.
- *  - Sem RESEND_API_KEY configurada vira no-op (loga warning).
+ *  - Sem SMTP configurado vira no-op (loga warning) — a plataforma funciona
+ *    inteira sem e-mail, só fica silenciosa.
  *
  * Visual: mesmo padrão dos templates do Supabase Auth (docs/emails/supabase/).
  */
 import { createClient } from '@supabase/supabase-js'
+import nodemailer, { type Transporter } from 'nodemailer'
 import { BRAND_DOMAIN, BRAND_FALLBACK, BRAND_SHORT } from './brand'
 import { SITE_URL } from './site'
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
-const FROM    = `${BRAND_FALLBACK.fullName} <noreply@${BRAND_DOMAIN}>`
+const SMTP_HOST = process.env.SMTP_HOST ?? ''
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 465)
+const SMTP_USER = process.env.SMTP_USER ?? ''
+const SMTP_PASS = process.env.SMTP_PASS ?? ''
+
+// O envelope tem que sair da MESMA caixa que autenticou: a Hostinger recusa
+// remetente diferente do usuário do SMTP. Por isso o endereço vem do SMTP_USER,
+// e não de um literal — trocou a caixa, o remetente acompanha.
+const FROM = `${BRAND_FALLBACK.fullName} <${SMTP_USER || `noreply@${BRAND_DOMAIN}`}>`
+
+// Conexão reaproveitada entre envios (pool): abrir TLS a cada e-mail custa mais
+// que o e-mail em si, e o webhook do Pix dispara isto no caminho crítico.
+let transporter: Transporter | null = null
+function mailer(): Transporter | null {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host:   SMTP_HOST,
+      port:   SMTP_PORT,
+      secure: SMTP_PORT === 465,   // 465 = TLS direto; 587 = STARTTLS
+      auth:   { user: SMTP_USER, pass: SMTP_PASS },
+      pool:   true,
+      maxConnections: 3,
+    })
+  }
+  return transporter
+}
 // A plataforma logada mora na MESMA origem do site, em /trade (ver site.ts) —
 // o fallback antigo apontava pra um subdomínio `app.` que nunca existiu, então
 // todo botão de e-mail caía num host morto quando NEXT_PUBLIC_APP_URL faltava.
@@ -157,8 +189,9 @@ interface SendParams {
 
 async function sendTransactional(params: SendParams): Promise<void> {
   try {
-    if (!RESEND_API_KEY) {
-      console.warn(`[email] RESEND_API_KEY ausente — pulando ${params.kind}:${params.refId}`)
+    const mail = mailer()
+    if (!mail) {
+      console.warn(`[email] SMTP não configurado — pulando ${params.kind}:${params.refId}`)
       return
     }
     const db = service()
@@ -183,16 +216,11 @@ async function sendTransactional(params: SendParams): Promise<void> {
       return
     }
 
-    // 3. Envia via Resend
-    const res = await fetch('https://api.resend.com/emails', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_API_KEY}` },
-      body:    JSON.stringify({ from: FROM, to: [to], subject: params.subject, html: params.html }),
-    })
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[email] Resend ${res.status} em ${params.kind}:${params.refId}: ${body}`)
+    // 3. Envia pelo SMTP
+    try {
+      await mail.sendMail({ from: FROM, to, subject: params.subject, html: params.html })
+    } catch (sendErr: any) {
+      console.error(`[email] SMTP falhou em ${params.kind}:${params.refId}: ${sendErr?.message}`)
       // Libera o lock pra permitir reenvio numa próxima tentativa
       await db.from('email_log').delete().match({ kind: params.kind, ref_id: params.refId })
       return

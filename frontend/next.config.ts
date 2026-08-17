@@ -3,6 +3,8 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // nodemailer é CommonJS e abre socket TLS — empacotar junto quebra o build.
+  serverExternalPackages: ['nodemailer'],
   typescript: { ignoreBuildErrors: true },
   eslint:     { ignoreDuringBuilds: true },
 };
