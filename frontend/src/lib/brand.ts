@@ -53,6 +53,7 @@ export const BRAND_SHORT = 'Vértice'
  * Domínio principal, sem protocolo. Base dos e-mails institucionais e do
  * fallback de SITE_URL.
  */
-// PROVISÓRIO: trocar assim que o domínio definitivo for registrado. Só é usado
-// como fallback — em produção quem manda é NEXT_PUBLIC_SITE_URL.
-export const BRAND_DOMAIN = 'verticebroker.com'
+// Domínio definitivo (registrado no Dynadot). NÃO é só fallback de URL: o
+// remetente dos e-mails transacionais é montado daqui em lib/email.ts, então
+// errar a extensão faz o Resend recusar o envio por domínio não verificado.
+export const BRAND_DOMAIN = 'verticebroker.co'

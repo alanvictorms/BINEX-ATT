@@ -13,10 +13,14 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { BRAND_DOMAIN, BRAND_FALLBACK, BRAND_SHORT } from './brand'
+import { SITE_URL } from './site'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM    = `${BRAND_FALLBACK.fullName} <noreply@${BRAND_DOMAIN}>`
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? `https://app.${BRAND_DOMAIN}`
+// A plataforma logada mora na MESMA origem do site, em /trade (ver site.ts) —
+// o fallback antigo apontava pra um subdomínio `app.` que nunca existiu, então
+// todo botão de e-mail caía num host morto quando NEXT_PUBLIC_APP_URL faltava.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? SITE_URL
 
 // A raiz virou o site institucional; a plataforma logada mora em /trade.
 // Botão de e-mail tem que cair dentro da plataforma, não na home de marketing.
