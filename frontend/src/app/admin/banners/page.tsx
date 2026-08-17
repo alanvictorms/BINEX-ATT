@@ -1,19 +1,20 @@
-'use client'
+﻿'use client'
 
 /**
  * Cadastro dos banners que rodam em carrossel na tela de trade.
  *
  * Dois formatos:
- *   texto   título + linha de apoio, no mesmo desenho do card antigo.
+ *   texto   tÃ­tulo + linha de apoio, no mesmo desenho do card antigo.
  *   imagem  preenche o card inteiro; o criativo manda no visual.
  *
- * Upload vai direto pro bucket público `banners` do Storage. Público de
- * propósito: é arte de campanha exibida pra qualquer usuário logado, então
- * assinar URL a cada render só somaria latência sem esconder nada.
+ * Upload vai direto pro bucket pÃºblico `banners` do Storage. PÃºblico de
+ * propÃ³sito: Ã© arte de campanha exibida pra qualquer usuÃ¡rio logado, entÃ£o
+ * assinar URL a cada render sÃ³ somaria latÃªncia sem esconder nada.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ImageCropper } from '@/components/admin/ImageCropper'
 import {
   Loader2, RefreshCw, Save, Check, Plus, Trash2, GripVertical, Upload,
   Image as ImageIcon, Type, AlertTriangle, Eye, EyeOff,
@@ -107,16 +108,21 @@ export default function BannersPage() {
     })
   }
 
-  async function upload(id: string, file: File) {
+  // O arquivo escolhido NAO sobe direto: abre o cortador. Sem isso cada arte
+  // subia numa proporcao diferente e o carrossel alternava imagem esticada com
+  // imagem sobrando barra preta.
+  const [cropAlvo, setCropAlvo] = useState<{ id: string; file: File } | null>(null)
+
+  async function upload(id: string, blob: Blob) {
     setError('')
-    if (file.size > MAX_BYTES) { setError('Imagem acima de 5 MB.'); return }
+    if (blob.size > MAX_BYTES) { setError('Imagem acima de 5 MB depois do recorte.'); return }
     setUploadingId(id)
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const path = `${id}-${Date.now()}.${ext}`
+      // Sempre PNG: e o que o cortador devolve, independente do formato de origem.
+      const path = `${id}-${Date.now()}.png`
       const { error: upErr } = await supabase.storage
         .from('banners')
-        .upload(path, file, { contentType: file.type, upsert: true })
+        .upload(path, blob, { contentType: 'image/png', upsert: true })
       if (upErr) throw upErr
       const { data } = supabase.storage.from('banners').getPublicUrl(path)
       patch(id, { imageUrl: data.publicUrl })
@@ -137,8 +143,8 @@ export default function BannersPage() {
         <div>
           <h1 className="text-[20px] font-bold text-white">Banners</h1>
           <p className="mt-2 text-[12.5px] text-[#8B9BB0]">
-            Promoções, eventos e bônus que rodam em carrossel na tela de trade.
-            Sem banner ativo, o espaço simplesmente não aparece.
+            PromoÃ§Ãµes, eventos e bÃ´nus que rodam em carrossel na tela de trade.
+            Sem banner ativo, o espaÃ§o simplesmente nÃ£o aparece.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -154,7 +160,7 @@ export default function BannersPage() {
             )}
           >
             {saved ? <Check size={14} /> : saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Salvando…' : saved ? 'Salvo' : 'Salvar'}
+            {saving ? 'Salvandoâ€¦' : saved ? 'Salvo' : 'Salvar'}
           </button>
         </div>
       </header>
@@ -191,8 +197,8 @@ export default function BannersPage() {
           <section key={b.id} className="rounded-xl border border-[#16202D] bg-[#0C131F] p-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="flex flex-col text-[#4B5A6E]">
-                <button onClick={() => move(b.id, -1)} disabled={i === 0} className="hover:text-white disabled:opacity-20">▲</button>
-                <button onClick={() => move(b.id, 1)} disabled={i === banners.length - 1} className="hover:text-white disabled:opacity-20">▼</button>
+                <button onClick={() => move(b.id, -1)} disabled={i === 0} className="hover:text-white disabled:opacity-20">â–²</button>
+                <button onClick={() => move(b.id, 1)} disabled={i === banners.length - 1} className="hover:text-white disabled:opacity-20">â–¼</button>
               </span>
               <GripVertical size={14} className="text-[#2A3A4D]" />
               <span className={cn(
@@ -205,7 +211,7 @@ export default function BannersPage() {
 
               <button
                 onClick={() => patch(b.id, { enabled: !b.enabled })}
-                title={b.enabled ? 'Ativo — clique para ocultar' : 'Oculto — clique para ativar'}
+                title={b.enabled ? 'Ativo â€” clique para ocultar' : 'Oculto â€” clique para ativar'}
                 className={cn('ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-semibold',
                   b.enabled ? 'text-[#1FD196] hover:bg-[#1FD196]/10' : 'text-[#7E8DA2] hover:bg-white/5')}
               >
@@ -219,8 +225,8 @@ export default function BannersPage() {
 
             {b.type === 'text' ? (
               <div className="grid grid-cols-2 gap-3">
-                <Campo label="Título" value={b.title ?? ''} onChange={v => patch(b.id, { title: v })} placeholder="Bônus de 100% no primeiro depósito" />
-                <Campo label="Linha de apoio" value={b.subtitle ?? ''} onChange={v => patch(b.id, { subtitle: v })} placeholder="Válido até domingo" />
+                <Campo label="TÃ­tulo" value={b.title ?? ''} onChange={v => patch(b.id, { title: v })} placeholder="BÃ´nus de 100% no primeiro depÃ³sito" />
+                <Campo label="Linha de apoio" value={b.subtitle ?? ''} onChange={v => patch(b.id, { subtitle: v })} placeholder="VÃ¡lido atÃ© domingo" />
               </div>
             ) : (
               <div className="flex items-center gap-4">
@@ -228,15 +234,17 @@ export default function BannersPage() {
                   {b.imageUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={b.imageUrl} alt="" className="h-full w-full object-cover" />
-                    : <span className="text-[11.5px] text-[#5B6A7E]">Prévia no tamanho real (420 × 64)</span>}
+                    : <span className="text-[11.5px] text-[#5B6A7E]">PrÃ©via no tamanho real (420 Ã— 64)</span>}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <input
                     ref={el => { fileInputs.current[b.id] = el }}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                    // image/* aceita qualquer formato que o browser decodifique,
+                    // inclusive HEIC do iPhone â€” o cortador normaliza tudo em PNG.
+                    accept="image/*"
                     className="hidden"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) upload(b.id, f); e.target.value = '' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setCropAlvo({ id: b.id, file: f }); e.target.value = '' }}
                   />
                   <button
                     onClick={() => fileInputs.current[b.id]?.click()}
@@ -244,19 +252,27 @@ export default function BannersPage() {
                     className="flex items-center justify-center gap-2 rounded-lg border border-[#1B2735] bg-[#0A1017] px-3 py-2 text-[12.5px] font-semibold text-[#C3CFDD] hover:border-[#2A3A4D] hover:text-white disabled:opacity-50"
                   >
                     {uploadingId === b.id ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    {uploadingId === b.id ? 'Enviando…' : 'Enviar imagem'}
+                    {uploadingId === b.id ? 'Enviandoâ€¦' : 'Enviar imagem'}
                   </button>
-                  <p className="text-[11px] text-[#6B7A8E]">PNG, JPG, WEBP, GIF ou SVG · até 5 MB · ideal 840 × 128 (2×)</p>
+                  <p className="text-[11px] text-[#6B7A8E]">Qualquer imagem Â· vocÃª recorta no formato do card antes de enviar</p>
                 </div>
               </div>
             )}
 
             <div className="mt-3">
-              <Campo label="Link ao clicar (opcional)" value={b.href ?? ''} onChange={v => patch(b.id, { href: v })} placeholder="https://…" />
+              <Campo label="Link ao clicar (opcional)" value={b.href ?? ''} onChange={v => patch(b.id, { href: v })} placeholder="https://â€¦" />
             </div>
           </section>
         ))}
       </div>
+
+      {cropAlvo && (
+        <ImageCropper
+          file={cropAlvo.file}
+          onCancel={() => setCropAlvo(null)}
+          onCropped={blob => { const alvo = cropAlvo; setCropAlvo(null); upload(alvo.id, blob) }}
+        />
+      )}
     </div>
   )
 }

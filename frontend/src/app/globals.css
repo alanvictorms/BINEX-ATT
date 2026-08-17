@@ -259,3 +259,17 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 @media (prefers-reduced-motion: reduce) {
   .vx-drawer-up { animation: none; }
 }
+
+/* Paleta verde da marca.
+   Sobrescreve os tokens do Tailwind num lugar so, em vez de trocar as 310
+   ocorrencias de green-* espalhadas pelo codigo.
+
+   O mapeamento segue a LUMINOSIDADE, nao a ordem em que as cores foram
+   listadas: green-400 e usado 133x como TEXTO sobre fundo escuro, entao
+   recebe o tom mais claro (#3FE0A6). Se levasse o mais escuro (#12915B) o
+   texto ficaria ilegivel. */
+@theme {
+  --color-green-400: #3FE0A6;  /* era #05DF72 - claro, usado em texto */
+  --color-green-500: #17A76B;  /* era ~#05D16C - medio, usado em fundo de botao */
+  --color-green-600: #12915B;  /* era #00A63E - escuro, hover/gradiente */
+}
