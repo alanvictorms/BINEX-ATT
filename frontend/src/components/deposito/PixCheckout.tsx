@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, Copy, Check, Loader2, CheckCircle2, AlertCircle, QrCode, Gift } from 'lucide-react'
+import { ChevronLeft, Copy, Check, Loader2, CheckCircle2, AlertCircle, QrCode, Gift, Ticket, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
 import { cn } from '@/lib/utils'
@@ -15,7 +15,21 @@ interface PixCheckoutProps {
   bonusPct?: number
   /** Valor mínimo de depósito que ativa o bônus. */
   bonusMinDeposit?: number
+  /** Teto em R$ do bônus escalonado — usado pra comparar com o cupom. */
+  bonusMaxAmount?: number
 }
+
+/**
+ * Cupom digitado no campo. `checking` existe porque a validação é debounced e
+ * bate no banco: sem o estado intermediário o campo pisca entre "inválido" e
+ * "aplicado" a cada tecla.
+ */
+type CouponState =
+  | { status: 'idle' }
+  | { status: 'needs-amount' }
+  | { status: 'checking' }
+  | { status: 'ok'; code: string; percent: number; benefit: number }
+  | { status: 'error'; reason: string }
 
 const AMOUNT_PRESETS = [50, 100, 250, 500, 1000, 2500]
 
@@ -59,6 +73,7 @@ export function PixCheckout({
   methodSelector,
   bonusPct = 0,
   bonusMinDeposit = 0,
+  bonusMaxAmount = 0,
 }: PixCheckoutProps) {
   const user = useAuthStore(s => s.user)
   // Depósito de dinheiro real vai SEMPRE pra conta REAL — nunca a conta atual,
@@ -82,6 +97,11 @@ export function PixCheckout({
   // aqui e a gente grava. 78% das contas ainda estão sem.
   const [cpf, setCpf]               = useState('')
   const [cpfFromProfile, setCpfFromProfile] = useState(false)
+
+  // Cupom (opcional). O benefício mostrado aqui é uma PRÉVIA: validate_coupon
+  // não grava nada. Quem consome o cupom é o servidor, quando o PIX for pago.
+  const [coupon, setCoupon] = useState('')
+  const [couponState, setCouponState] = useState<CouponState>({ status: 'idle' })
 
   useEffect(() => {
     supabase.rpc('get_public_config').then(({ data }) => {
@@ -110,6 +130,41 @@ export function PixCheckout({
         }
       })
   }, [user?.id])
+
+  // Valida o cupom conforme digita, com debounce. Depende do VALOR também: o
+  // benefício é percentual e o cupom pode ter mínimo, então trocar o valor pode
+  // virar um cupom válido em inválido (e vice-versa).
+  useEffect(() => {
+    const code = coupon.trim()
+    if (!code) { setCouponState({ status: 'idle' }); return }
+
+    // Sem valor não dá pra calcular percentual nem checar mínimo do cupom — e
+    // isso não é erro do usuário, então não pinta o campo de vermelho.
+    const val = parseFloat(amount.replace(',', '.'))
+    if (!Number.isFinite(val) || val <= 0) { setCouponState({ status: 'needs-amount' }); return }
+
+    setCouponState({ status: 'checking' })
+    let cancelado = false
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('validate_coupon', { p_code: code, p_amount: val })
+      if (cancelado) return
+      if (error) {
+        setCouponState({ status: 'error', reason: 'Não foi possível validar o cupom agora.' })
+        return
+      }
+      const r = data as { ok?: boolean; reason?: string; code?: string; kind?: string; percent?: number; benefit?: number } | null
+      if (!r?.ok)                      { setCouponState({ status: 'error', reason: r?.reason ?? 'Cupom inválido' }); return }
+      if (r.kind !== 'deposit_bonus')  { setCouponState({ status: 'error', reason: 'Este cupom não vale para depósito.' }); return }
+      setCouponState({
+        status:  'ok',
+        code:    r.code ?? code.toUpperCase(),
+        percent: Number(r.percent) || 0,
+        benefit: Number(r.benefit) || 0,
+      })
+    }, 450)
+
+    return () => { cancelado = true; clearTimeout(t) }
+  }, [coupon, amount])
 
   // Gera imagem QR quando qrcode (string EMV) chega
   useEffect(() => {
@@ -156,14 +211,18 @@ export function PixCheckout({
         if (!rpcErr && saved) setCpfFromProfile(true)
       }
 
-      // Só o valor vai no corpo. Quem deposita e em qual conta vem da sessão, no
-      // servidor — mandar userId/accountId daqui seria decorativo (a rota ignora)
-      // e sugeriria que o cliente escolhe a conta de destino, que não é o caso.
+      // Valor e cupom são a única coisa que o cliente escolhe. Quem deposita e em
+      // qual conta vem da sessão, no servidor — mandar userId/accountId daqui
+      // seria decorativo (a rota ignora) e sugeriria que o cliente escolhe a
+      // conta de destino, que não é o caso. O cupom também é revalidado lá.
       const res = await fetch('/api/payments/pix/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ amount: val }),
+        body: JSON.stringify({
+          amount: val,
+          ...(couponState.status === 'ok' ? { coupon: couponState.code } : {}),
+        }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Erro ao criar PIX')
@@ -175,7 +234,7 @@ export function PixCheckout({
     } finally {
       setLoading(false)
     }
-  }, [amount, user, realAccount, limits, cpf, cpfFromProfile])
+  }, [amount, user, realAccount, limits, cpf, cpfFromProfile, couponState])
 
   const copyCode = () => {
     if (!qrcode) return
@@ -264,6 +323,16 @@ export function PixCheckout({
   // Só cutuca sobre o bônus quando ele está ao alcance e o valor digitado não chega lá.
   const perdendoBonus = bonusPct > 0 && bonusMinDeposit > 0 && temValor && val < bonusMinDeposit
 
+  // O cupom SUBSTITUI o degrau escalonado (não soma) — então a tela precisa
+  // dizer quanto o usuário está trocando. Sem esta conta, alguém com 200% de 1º
+  // depósito aplicaria um cupom de 20% achando que ganhou algo.
+  const cupomOk        = couponState.status === 'ok'
+  const cupomBeneficio = couponState.status === 'ok' ? couponState.benefit : 0
+  const tierBonus      = bonusPct > 0 && temValor && val >= bonusMinDeposit
+    ? Math.min(val * bonusPct / 100, bonusMaxAmount > 0 ? bonusMaxAmount : Infinity)
+    : 0
+  const cupomPior      = cupomOk && tierBonus > cupomBeneficio
+
   return (
     <div className="flex flex-col">
       <div className="p-4 sm:p-6 flex flex-col gap-5">
@@ -347,8 +416,74 @@ export function PixCheckout({
           )}
         </div>
 
+        {/* Cupom */}
+        <div>
+          <div className="flex items-end justify-between mb-2 gap-2">
+            <label className="text-[10px] font-bold text-[#7E8DA2] tracking-widest">
+              CUPOM <span className="text-[#4a5162]">(OPCIONAL)</span>
+            </label>
+            {couponState.status === 'checking' && (
+              <span className="flex items-center gap-1 text-[10px] text-[#7E8DA2]">
+                <Loader2 size={10} className="animate-spin" /> verificando
+              </span>
+            )}
+          </div>
+          <div className={cn(
+            'flex items-center gap-2 border rounded-xl px-4 py-3 bg-[#0E1620] transition-colors',
+            couponState.status === 'error'
+              ? 'border-red-500/40'
+              : cupomOk
+                ? 'border-green-500/50'
+                : 'border-[#16202D] focus-within:border-green-500/50',
+          )}>
+            <Ticket size={15} className={cn('flex-shrink-0', cupomOk ? 'text-green-400' : 'text-[#4a5162]')} />
+            <input
+              placeholder="Tem um código? Digite aqui"
+              value={coupon}
+              onChange={e => { setCoupon(e.target.value.toUpperCase().replace(/\s/g, '')); setError(null) }}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              maxLength={32}
+              className="flex-1 min-w-0 bg-transparent font-mono text-sm font-bold text-white outline-none placeholder-[#1B2735] tracking-wide"
+            />
+            {coupon && (
+              <button
+                onClick={() => setCoupon('')}
+                aria-label="Remover cupom"
+                className="flex-shrink-0 text-[#7E8DA2] hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {couponState.status === 'ok' && (
+            <p className="flex items-start gap-1.5 text-[11px] text-green-400 mt-1.5 leading-snug">
+              <Check size={12} className="mt-[3px] flex-shrink-0" />
+              <span>
+                <span className="font-bold">{couponState.code}</span> aplicado — +R${' '}
+                {fmtBRL(couponState.benefit)} de bônus ({couponState.percent}%), creditado quando o PIX for pago.
+              </span>
+            </p>
+          )}
+          {couponState.status === 'error' && (
+            <p className="text-[11px] text-red-400 mt-1.5 leading-snug">{couponState.reason}</p>
+          )}
+          {couponState.status === 'needs-amount' && (
+            <p className="text-[10px] text-[#6b7080] mt-1.5 leading-snug">
+              Informe o valor do depósito para calcular o bônus do cupom.
+            </p>
+          )}
+          {cupomOk && tierBonus > 0 && (
+            <p className={cn('text-[10px] mt-1.5 leading-snug', cupomPior ? 'text-amber-400' : 'text-[#6b7080]')}>
+              {cupomPior
+                ? `O cupom substitui o bônus de ${bonusPct}% deste depósito, que daria R$ ${fmtBRL(tierBonus)}. Apague o cupom para ficar com o bônus maior.`
+                : `Substitui o bônus de ${bonusPct}% (R$ ${fmtBRL(tierBonus)}) deste depósito.`}
+            </p>
+          )}
+        </div>
+
         {/* Bônus ao alcance mas fora do valor digitado */}
-        {perdendoBonus && (
+        {perdendoBonus && !cupomOk && (
           <div className="flex items-start gap-2.5 bg-green-500/[0.07] border border-green-500/25 rounded-xl px-3.5 py-2.5">
             <Gift size={15} className="text-green-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-[#c9ccd4] leading-snug">

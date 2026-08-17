@@ -48,11 +48,13 @@ async function getBspayToken(): Promise<string> {
 // sessão e a conta é buscada no banco (1 conta REAL por usuário — 306/306 em prod).
 export async function POST(req: NextRequest) {
   try {
-    const { amount } = await req.json()
+    const { amount, coupon } = await req.json()
 
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: 'Valor inválido' }, { status: 400 })
     }
+
+    const couponCode = typeof coupon === 'string' ? coupon.trim().toUpperCase() : ''
 
     // 1. Quem está pedindo — lido do cookie, igual à rota de payout do admin.
     const userClient = createServerClient(
@@ -107,6 +109,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Valor máximo para depósito: R$ ${depMax}` }, { status: 400 })
     }
 
+    // Cupom: revalidado AQUI com a sessão do usuário (validate_coupon usa
+    // auth.uid()), porque o que a tela mostrou pode ter esgotado no meio. O
+    // código só é gravado na linha do depósito — quem credita é o
+    // apply_coupon_bonus, dentro do confirm_deposit, quando o PIX for pago.
+    if (couponCode) {
+      const { data: check, error: cErr } = await userClient.rpc('validate_coupon', {
+        p_code:   couponCode,
+        p_amount: amount,
+      })
+      const c = check as { ok?: boolean; reason?: string; kind?: string } | null
+      if (cErr) {
+        console.error('[PIX create] validate_coupon falhou:', cErr)
+        return NextResponse.json({ error: 'Não foi possível validar o cupom. Tente de novo.' }, { status: 400 })
+      }
+      if (!c?.ok) {
+        return NextResponse.json({ error: c?.reason ?? 'Cupom inválido' }, { status: 400 })
+      }
+      if (c.kind !== 'deposit_bonus') {
+        return NextResponse.json({ error: 'Este cupom não vale para depósito.' }, { status: 400 })
+      }
+    }
+
     const externalId = `vtx_${userId.replace(/-/g, '').slice(0, 12)}_${Date.now()}`
 
     // TESTE Cloudflare-bypass: aponta o webhook pra URL DIRETA do EasyPanel (nao
@@ -144,6 +168,10 @@ export async function POST(req: NextRequest) {
     const bspayId = bspayData?.data?.id ?? bspayData?.data?.transaction_id ?? null
 
     // Salva depósito pendente no Supabase (service-role criado acima).
+    //
+    // `coupon_code` só entra no insert quando há cupom: se o SQL de cupons ainda
+    // não estiver aplicado no banco, o PostgREST recusa a coluna desconhecida e
+    // mandar a chave sempre derrubaria TODO depósito, com ou sem cupom.
     const { error: insErr } = await supabase.from('deposits').insert({
       user_id:     userId,
       account_id:  accountId,
@@ -152,6 +180,7 @@ export async function POST(req: NextRequest) {
       amount,
       status:      'pending',
       qrcode,
+      ...(couponCode ? { coupon_code: couponCode } : {}),
     })
     if (insErr) {
       console.error('[PIX create] falha ao gravar deposito:', insErr)

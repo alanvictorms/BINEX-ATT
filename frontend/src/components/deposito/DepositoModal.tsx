@@ -184,6 +184,7 @@ export function DepositoModal({ onClose }: DepositoModalProps) {
               methodSelector={methodSelector}
               bonusPct={tierAvailable ? tierPct : 0}
               bonusMinDeposit={offer.minDeposit}
+              bonusMaxAmount={offer.maxAmount}
               onSuccess={onClose}
             />
           )}
