@@ -1,0 +1,253 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ADMIN SKIN — tema dark/light do painel administrativo.
+
+   Todo o visual do admin sai DAQUI. As 23 páginas do painel não usam nenhuma
+   classe do design system (`vx-*`): elas escrevem hex na mão (#0C131F,
+   #1e2433, …), os mesmos ~30 tons repetidos cerca de 900 vezes. Em vez de
+   reescrever 23 arquivos, este arquivo redefine essas próprias classes
+   utilitárias dentro do escopo `.admin-skin` e as amarra a variáveis que
+   trocam junto com o tema.
+
+   Por que funciona sem `!important`: o Tailwind v4 emite as utilities dentro de
+   uma cascade layer, e CSS fora de layer ganha de qualquer layer,
+   independentemente de especificidade. Este arquivo está fora de propósito.
+
+   Escopo: só o que estiver dentro de `.admin-skin` (o wrapper de
+   app/admin/layout.tsx). A plataforma do cliente não é tocada.
+
+   LIMITE HONESTO: isto é pele, não reforma. Cor, profundidade, tipografia,
+   densidade e estados mudam; a planta baixa — o que fica onde — é a mesma.
+   Página nova com hex que não esteja mapeado aqui passa direto e fica fora do
+   tema: ao criar tela de admin, reaproveite os tons já usados.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.admin-skin {
+  color-scheme: dark;
+
+  --adm-bg:        #070B12;
+  --adm-bg-2:      #0A0F18;
+  --adm-surface:   #0E1420;
+  --adm-surface-2: #131B29;
+  --adm-surface-3: #1A2434;
+  --adm-border:    #1C2739;
+  --adm-border-2:  #283549;
+
+  --adm-text:   #E8EEF9;
+  --adm-text-2: #B3C1D6;
+  --adm-text-3: #7C8BA5;
+  --adm-text-4: #5B6A82;
+
+  --adm-accent:      #3B82F6;
+  --adm-accent-2:    #7CB0FB;
+  --adm-accent-soft: rgba(59, 130, 246, 0.14);
+  --adm-success:     #22C98B;
+  --adm-danger:      #F2495F;
+  --adm-warn:        #F0B429;
+
+  --adm-hover:  rgba(255, 255, 255, 0.045);
+  --adm-scrim:  rgba(3, 6, 11, 0.78);
+  --adm-shadow: 0 1px 2px rgba(0, 0, 0, 0.40), 0 8px 24px -12px rgba(0, 0, 0, 0.60);
+  --adm-ring:   0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+.admin-skin[data-theme='light'] {
+  color-scheme: light;
+
+  --adm-bg:        #F2F5FA;
+  --adm-bg-2:      #E9EEF6;
+  --adm-surface:   #FFFFFF;
+  --adm-surface-2: #F6F8FC;
+  --adm-surface-3: #EAF0F8;
+  --adm-border:    #DFE5EE;
+  --adm-border-2:  #C3CDDC;
+
+  --adm-text:   #0D1626;
+  --adm-text-2: #3B4759;
+  --adm-text-3: #64748B;
+  --adm-text-4: #8695A9;
+
+  --adm-accent:      #2563EB;
+  --adm-accent-2:    #1D4ED8;
+  --adm-accent-soft: rgba(37, 99, 235, 0.10);
+  --adm-success:     #0E9F6E;
+  --adm-danger:      #DC2A45;
+  --adm-warn:        #B45309;
+
+  --adm-hover:  rgba(13, 22, 38, 0.045);
+  --adm-scrim:  rgba(13, 22, 38, 0.45);
+  --adm-shadow: 0 1px 2px rgba(16, 30, 54, 0.06), 0 8px 24px -12px rgba(16, 30, 54, 0.18);
+  --adm-ring:   0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+
+.admin-skin {
+  background-color: var(--adm-bg);
+  color: var(--adm-text-2);
+  /* Números tabulares: em painel financeiro, coluna de valor que "dança" a
+     cada dígito é ruído puro. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+.admin-skin h1 { letter-spacing: -0.022em; }
+.admin-skin h2,
+.admin-skin h3 { letter-spacing: -0.014em; }
+
+/* ── Superfícies ─────────────────────────────────────────────────────────── */
+
+.admin-skin .bg-\[\#060A11\] { background-color: var(--adm-bg); }
+.admin-skin .bg-\[\#0a0e16\] { background-color: var(--adm-bg-2); }
+
+.admin-skin .bg-\[\#0C131F\],
+.admin-skin .bg-\[\#0A101A\] { background-color: var(--adm-surface); }
+
+.admin-skin .bg-\[\#111827\],
+.admin-skin .bg-\[\#0d1117\],
+.admin-skin .bg-\[\#0A1017\],
+.admin-skin .bg-\[\#101825\],
+.admin-skin .bg-\[\#1a1f2e\] { background-color: var(--adm-surface-2); }
+
+.admin-skin .bg-\[\#1a2030\],
+.admin-skin .bg-\[\#1a2235\],
+.admin-skin .bg-\[\#151c2c\],
+.admin-skin .bg-\[\#232b3d\],
+.admin-skin .hover\:bg-\[\#232b3d\]:hover { background-color: var(--adm-surface-3); }
+
+/* Cartão com elevação de verdade: sem sombra, "escuro sobre escuro" vira só um
+   retângulo levemente diferente do fundo. */
+.admin-skin .rounded-xl.border,
+.admin-skin .rounded-lg.border,
+.admin-skin .rounded-\[10px\].border { box-shadow: var(--adm-shadow); }
+
+/* ── Bordas ──────────────────────────────────────────────────────────────── */
+
+.admin-skin .border-\[\#1e2433\],
+.admin-skin .border-\[\#16202D\],
+.admin-skin .border-\[\#1B2735\],
+.admin-skin .border-\[\#18222F\],
+.admin-skin .border-\[\#141C28\] { border-color: var(--adm-border); }
+
+.admin-skin .border-\[\#2a3448\],
+.admin-skin .border-\[\#2A3A4D\],
+.admin-skin .border-\[\#3a4a60\],
+.admin-skin .hover\:border-\[\#2a3448\]:hover,
+.admin-skin .hover\:border-\[\#2A3A4D\]:hover,
+.admin-skin .hover\:border-\[\#3a4a60\]:hover { border-color: var(--adm-border-2); }
+
+.admin-skin .divide-\[\#141C28\] > * + *,
+.admin-skin .divide-\[\#16202D\] > * + *,
+.admin-skin .divide-\[\#1e2433\] > * + * { border-color: var(--adm-border); }
+
+/* ── Texto ───────────────────────────────────────────────────────────────── */
+
+.admin-skin .text-white { color: var(--adm-text); }
+
+.admin-skin .text-\[\#AEBBCB\],
+.admin-skin .text-\[\#C3CFDD\],
+.admin-skin .text-\[\#d1d5db\] { color: var(--adm-text-2); }
+
+.admin-skin .text-\[\#7E8DA2\],
+.admin-skin .text-\[\#9ca3af\],
+.admin-skin .text-\[\#8B9BB0\],
+.admin-skin .text-\[\#6B7A8E\],
+.admin-skin .hover\:text-\[\#9ca3af\]:hover,
+.admin-skin .hover\:text-\[\#7E8DA2\]:hover { color: var(--adm-text-3); }
+
+.admin-skin .text-\[\#6b7280\],
+.admin-skin .text-\[\#4b5563\],
+.admin-skin .text-\[\#4B5A6E\],
+.admin-skin .text-\[\#5B6A7E\],
+.admin-skin .text-\[\#54637A\] { color: var(--adm-text-4); }
+
+.admin-skin .placeholder-\[\#7E8DA2\]::placeholder,
+.admin-skin .placeholder-\[\#6b7280\]::placeholder,
+.admin-skin .placeholder-\[\#54637A\]::placeholder { color: var(--adm-text-4); }
+
+/* ── Acentos ─────────────────────────────────────────────────────────────── */
+
+.admin-skin .bg-\[\#1D5FE0\],
+.admin-skin .bg-\[\#2E6BE6\],
+.admin-skin .bg-\[\#6366f1\] { background-color: var(--adm-accent); }
+
+.admin-skin .text-\[\#1D5FE0\],
+.admin-skin .text-\[\#2E6BE6\],
+.admin-skin .text-\[\#6366f1\],
+.admin-skin .text-\[\#6C9CF8\] { color: var(--adm-accent-2); }
+
+.admin-skin .border-\[\#2E6BE6\],
+.admin-skin .focus\:border-\[\#2E6BE6\]:focus { border-color: var(--adm-accent); }
+
+.admin-skin .text-\[\#1FD196\],
+.admin-skin .text-\[\#22c55e\],
+.admin-skin .text-\[\#3FE0A6\] { color: var(--adm-success); }
+
+.admin-skin .bg-\[\#1FD196\],
+.admin-skin .hover\:bg-\[\#1FD196\]:hover { background-color: var(--adm-success); }
+
+.admin-skin .text-\[\#F0435A\],
+.admin-skin .text-\[\#ef4444\] { color: var(--adm-danger); }
+
+.admin-skin .text-\[\#f59e0b\],
+.admin-skin .text-\[\#F0B429\] { color: var(--adm-warn); }
+
+/* Cores utilitárias do Tailwind só sobrevivem no tema claro se escurecerem —
+   verde/vermelho/amarelo 400 sobre branco não têm contraste nenhum. */
+.admin-skin[data-theme='light'] .text-green-400,
+.admin-skin[data-theme='light'] .text-green-500  { color: var(--adm-success); }
+.admin-skin[data-theme='light'] .text-red-400,
+.admin-skin[data-theme='light'] .text-red-500    { color: var(--adm-danger); }
+.admin-skin[data-theme='light'] .text-yellow-400,
+.admin-skin[data-theme='light'] .text-amber-400  { color: var(--adm-warn); }
+.admin-skin[data-theme='light'] .text-blue-400   { color: var(--adm-accent-2); }
+
+/* ── Interação ───────────────────────────────────────────────────────────── */
+
+.admin-skin .bg-white\/5 { background-color: var(--adm-hover); }
+.admin-skin .hover\:bg-white\/5:hover,
+.admin-skin .hover\:bg-white\/10:hover { background-color: var(--adm-hover); }
+
+.admin-skin .bg-black\/50,
+.admin-skin .bg-black\/60,
+.admin-skin .bg-black\/70,
+.admin-skin .bg-black\/80 { background-color: var(--adm-scrim); }
+
+.admin-skin input,
+.admin-skin select,
+.admin-skin textarea { transition: border-color .16s ease, box-shadow .16s ease; }
+
+.admin-skin input:focus,
+.admin-skin select:focus,
+.admin-skin textarea:focus { box-shadow: var(--adm-ring); outline: none; }
+
+/* Linha de tabela: o alvo inteiro reage, não só a célula sob o cursor. */
+.admin-skin tbody tr { transition: background-color .12s ease; }
+.admin-skin tbody tr:hover { background-color: var(--adm-hover); }
+
+/* ── Densidade (compacto) ────────────────────────────────────────────────── */
+/* Painel é ferramenta de trabalho: rolar menos vale mais que respirar mais.
+   Mexe só em padding e gap — nada de tamanho de fonte, que reflui texto e
+   quebra alinhamento de coluna. */
+
+.admin-skin .p-5   { padding: 1rem; }
+.admin-skin .p-4   { padding: 0.875rem; }
+.admin-skin .py-5  { padding-top: 1rem;    padding-bottom: 1rem; }
+.admin-skin .py-4  { padding-top: 0.8rem;  padding-bottom: 0.8rem; }
+.admin-skin .py-3  { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+.admin-skin .gap-5 { gap: 1rem; }
+.admin-skin .gap-4 { gap: 0.85rem; }
+
+/* ── Barra de rolagem ────────────────────────────────────────────────────── */
+
+.admin-skin *::-webkit-scrollbar { width: 10px; height: 10px; }
+.admin-skin *::-webkit-scrollbar-track { background: transparent; }
+.admin-skin *::-webkit-scrollbar-thumb {
+  background-color: var(--adm-border-2);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.admin-skin *::-webkit-scrollbar-thumb:hover {
+  background-color: var(--adm-text-4);
+  background-clip: content-box;
+}

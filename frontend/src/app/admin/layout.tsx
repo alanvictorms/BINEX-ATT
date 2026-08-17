@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
-import { Loader2, Menu } from 'lucide-react'
+import { Loader2, Menu, Sun, Moon } from 'lucide-react'
+import './admin-skin.css'
+
+type AdmTheme = 'dark' | 'light'
+const THEME_KEY = 'admin:theme'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
@@ -14,6 +18,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const [adminCheck, setAdminCheck] = useState<'checking' | 'allowed' | 'denied'>('checking')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Tema do painel. Lido depois da montagem de propósito: ler localStorage no
+  // primeiro render faria o HTML do servidor divergir do cliente.
+  const [theme, setTheme] = useState<AdmTheme>('dark')
+  useEffect(() => {
+    const salvo = window.localStorage.getItem(THEME_KEY)
+    if (salvo === 'light' || salvo === 'dark') setTheme(salvo)
+  }, [])
+
+  function toggleTheme() {
+    setTheme(t => {
+      const proximo: AdmTheme = t === 'dark' ? 'light' : 'dark'
+      window.localStorage.setItem(THEME_KEY, proximo)
+      return proximo
+    })
+  }
 
   useEffect(() => {
     if (loading) return
@@ -45,20 +65,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (adminCheck !== 'allowed') return null
 
   return (
-    <div className="flex h-[100dvh] bg-[#060A11] overflow-hidden">
+    <div className="admin-skin flex h-[100dvh] bg-[#060A11] overflow-hidden" data-theme={theme}>
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Barra de topo — apenas mobile. No desktop (md+) fica oculta e o layout é idêntico ao atual. */}
-        <header className="md:hidden flex items-center gap-3 h-14 px-4 border-b border-[#1e2433] bg-[#060A11] flex-shrink-0">
+        {/* Barra de topo. O menu sanduíche continua só no mobile; a barra passou
+            a existir no desktop também para abrigar o seletor de tema. */}
+        <header className="flex items-center gap-3 h-12 px-4 border-b border-[#1e2433] bg-[#060A11] flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-lg text-[#9ca3af] hover:text-white hover:bg-white/5 transition-colors"
+            className="md:hidden p-2 -ml-2 rounded-lg text-[#9ca3af] hover:text-white hover:bg-white/5 transition-colors"
             aria-label="Abrir menu"
           >
             <Menu size={22} />
           </button>
-          <span className="text-sm font-bold text-white">Admin Panel</span>
+          <span className="md:hidden text-sm font-bold text-white">Admin Panel</span>
+
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[#1e2433] text-[#9ca3af] transition-colors hover:text-white hover:bg-white/5"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto">
