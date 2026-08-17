@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Users, X, Search, ArrowRight, ArrowUp, ArrowDown, Check, Crown, Wallet,
-  AlertTriangle, PartyPopper, Info, UserPlus, Bookmark, Activity, TrendingUp,
-  BarChart3, Trophy, ChevronDown, SlidersHorizontal, BadgeCheck,
+  Users, Search, ArrowRight, ArrowUp, ArrowDown, Check, Crown, Wallet,
+  AlertTriangle, PartyPopper, Info, UserPlus, Activity, TrendingUp,
+  BarChart3, ChevronDown,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
@@ -207,7 +207,7 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
         {loading ? <div className="p-8 text-center text-[13px] text-[#7E8DA2]">Carregando...</div> : tab === 'TRADERS' ? (
           <div className="flex flex-col gap-4">
           {/* Resumo do catálogo — 2 colunas no celular, 4 no desktop. */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi label="Traders ativos"    value={fmtInt(stats.traders)}    hint="No catálogo agora" />
             <Kpi label="Copiadores"        value={fmtInt(stats.copiadores)} hint="Somando todos os traders" />
             <Kpi label="Operações copiadas" value={fmtInt(stats.operacoes)} hint="Desde o início" />
@@ -257,8 +257,8 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                   const slider = profit
                   const risco = riscoDe(loss)
                   return (
-                    <div key={t.id} className="relative flex flex-col gap-5 px-4 py-5 sm:px-5 xl:flex-row xl:items-center xl:gap-6" data-testid={`trader-card-${t.id}`}>
-                      <div className="flex w-full shrink-0 flex-col gap-3 xl:w-[212px]">
+                    <div key={t.id} className="relative flex flex-col gap-5 px-4 py-5 sm:px-5 2xl:flex-row 2xl:items-center 2xl:gap-4" data-testid={`trader-card-${t.id}`}>
+                      <div className="flex w-full shrink-0 flex-col gap-3 2xl:w-[200px]">
                         <div className="flex items-start gap-3">
                           <Avatar avatarUrl={t.avatarUrl} code={t.countryCode} size={54} />
                           <div className="min-w-0">
@@ -271,7 +271,7 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                           </div>
                         </div>
                       </div>
-                      <div className="flex w-full shrink-0 flex-col gap-2 xl:w-[190px]">
+                      <div className="flex w-full shrink-0 flex-col gap-2 2xl:w-[150px]">
                         <span className="vx-label block text-[9px]">Retorno (30D)</span>
                         <span className="text-[26px] font-bold leading-none text-[#1FD196]">+{t.weeklyGainPct}%</span>
                         <Spark />
@@ -280,17 +280,17 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                       {/* Métricas: grade que quebra sozinha no celular. `xl:contents`
                           dissolve o wrapper no desktop, e as quatro voltam a ser
                           colunas da mesma linha, como no layout largo. */}
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4 xl:contents">
-                        <div className="flex shrink-0 flex-col gap-5 xl:w-[95px]">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4 2xl:contents">
+                        <div className="flex shrink-0 flex-col gap-5 2xl:w-[88px]">
                           <Metric label="Operações" value={t.copiedTrades.toLocaleString('pt-BR')} />
                         </div>
-                        <div className="flex shrink-0 flex-col gap-5 xl:w-[120px]">
+                        <div className="flex shrink-0 flex-col gap-5 2xl:w-[104px]">
                           <Metric label="Taxa de sucesso" value={`${t.profitPct}%`} />
                         </div>
-                        <div className="flex shrink-0 flex-col gap-5 xl:w-[95px]">
+                        <div className="flex shrink-0 flex-col gap-5 2xl:w-[88px]">
                           <Metric label="Comissão" value={`${t.commissionPct}%`} />
                         </div>
-                        <div className="shrink-0 leading-none xl:w-[110px]">
+                        <div className="shrink-0 leading-none 2xl:w-[92px]">
                           <span className="vx-label block text-[9px]">Risco</span>
                           <span className="mt-2.5 block text-[14px] font-semibold" style={{ color: risco.cor }}>{risco.label}</span>
                           <span className="mt-2.5 flex gap-1">
@@ -305,7 +305,10 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                         </div>
                       </div>
 
-                      <div className="flex w-full min-w-0 flex-col gap-4 xl:flex-1">
+                      {/* Rentabilidade + ação. O min-w é o que impede o botão de
+                          ser espremido: era `flex-1` puro e, faltando espaço, o
+                          "Adquirir · R$ 99,00" virava uma coluna de 60px. */}
+                      <div className="flex w-full min-w-0 flex-col gap-4 2xl:min-w-[196px] 2xl:flex-1">
                         <div>
                           <span className="vx-label block text-[9px]">Rentabilidade (30D)</span>
                           <div className="relative mt-4 h-[3px] w-full rounded-full bg-[#1E2A39]">
@@ -329,7 +332,7 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
             {/* Coluna da direita — é apoio (como funciona, números, CTA de trader).
                 Abaixo de xl ela espremeria o card do trader, que é o conteúdo
                 que a pessoa veio ver, então sai da tela em vez de disputar espaço. */}
-            <div className="vx-col hidden w-[300px] shrink-0 xl:flex">
+            <div className="vx-col hidden w-[300px] shrink-0 2xl:flex">
               <div className="vx-panel p-5">
                 <h3 className="vx-h3 text-[15px]">Como funciona</h3>
                 <div className="mt-4 flex flex-col gap-4">
@@ -367,12 +370,6 @@ export function CopyPanel({ onClose, onDeposit }: CopyPanelProps) {
                 </div>
               </div>
 
-              <div className="vx-panel relative overflow-hidden p-5">
-                <h3 className="vx-h3 text-[15px]">Seja um Trader</h3>
-                <p className="vx-sub mt-3 max-w-[170px]">Compartilhe sua estratégia e ganhe comissões</p>
-                <button type="button" className="vx-btn-ghost mt-5">Tornar-se Trader</button>
-                <Trophy size={74} className="pointer-events-none absolute -bottom-2 right-2 text-[#4B8CF5]/25" />
-              </div>
             </div>
           </div>
           </div>
