@@ -1,25 +1,27 @@
-﻿'use client'
+'use client'
 
 /**
  * Cadastro dos banners que rodam em carrossel na tela de trade.
  *
  * Dois formatos:
- *   texto   tÃ­tulo + linha de apoio, no mesmo desenho do card antigo.
+ *   texto   título + linha de apoio, no mesmo desenho do card antigo.
  *   imagem  preenche o card inteiro; o criativo manda no visual.
  *
- * Upload vai direto pro bucket pÃºblico `banners` do Storage. PÃºblico de
- * propÃ³sito: Ã© arte de campanha exibida pra qualquer usuÃ¡rio logado, entÃ£o
- * assinar URL a cada render sÃ³ somaria latÃªncia sem esconder nada.
+ * Upload vai direto pro bucket público `banners` do Storage. Público de
+ * propósito: é arte de campanha exibida pra qualquer usuário logado, então
+ * assinar URL a cada render só somaria latência sem esconder nada.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ImageCropper } from '@/components/admin/ImageCropper'
 import {
-  Loader2, RefreshCw, Save, Check, Plus, Trash2, GripVertical, Upload,
+  Loader2, RefreshCw, Save, Check, Trash2, GripVertical, Upload,
   Image as ImageIcon, Type, AlertTriangle, Eye, EyeOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+type Acao = 'none' | 'link' | 'deposit'
 
 interface Banner {
   id: string
@@ -28,6 +30,7 @@ interface Banner {
   subtitle?: string
   imageUrl?: string
   href?: string
+  action?: Acao
   enabled: boolean
 }
 
@@ -38,6 +41,7 @@ function novoBanner(type: Banner['type']): Banner {
     id: (globalThis.crypto?.randomUUID?.() ?? String(Date.now())),
     type,
     enabled: true,
+    action: 'none',
     ...(type === 'text' ? { title: '', subtitle: '' } : { imageUrl: '' }),
   }
 }
@@ -57,7 +61,10 @@ export default function BannersPage() {
     try {
       const { data, error } = await supabase.rpc('get_promo_banners')
       if (error) throw error
-      const list = Array.isArray(data) ? (data as Banner[]) : []
+      const raw = Array.isArray(data) ? (data as Banner[]) : []
+      // Banner cadastrado antes da ação existir: assume o que ele já fazia (tem
+      // link, abre link). Normalizar aqui e no `orig` evita a tela abrir suja.
+      const list = raw.map(b => ({ ...b, action: b.action ?? (b.href ? 'link' : 'none') as Acao }))
       setBanners(list)
       setOrig(JSON.stringify(list))
     } catch (e: any) {
@@ -143,8 +150,8 @@ export default function BannersPage() {
         <div>
           <h1 className="text-[20px] font-bold text-white">Banners</h1>
           <p className="mt-2 text-[12.5px] text-[#8B9BB0]">
-            PromoÃ§Ãµes, eventos e bÃ´nus que rodam em carrossel na tela de trade.
-            Sem banner ativo, o espaÃ§o simplesmente nÃ£o aparece.
+            Promoções, eventos e bônus que rodam em carrossel na tela de trade.
+            Sem banner ativo, o espaço simplesmente não aparece.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -160,7 +167,7 @@ export default function BannersPage() {
             )}
           >
             {saved ? <Check size={14} /> : saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Salvandoâ€¦' : saved ? 'Salvo' : 'Salvar'}
+            {saving ? 'Salvando…' : saved ? 'Salvo' : 'Salvar'}
           </button>
         </div>
       </header>
@@ -197,8 +204,8 @@ export default function BannersPage() {
           <section key={b.id} className="rounded-xl border border-[#16202D] bg-[#0C131F] p-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="flex flex-col text-[#4B5A6E]">
-                <button onClick={() => move(b.id, -1)} disabled={i === 0} className="hover:text-white disabled:opacity-20">â–²</button>
-                <button onClick={() => move(b.id, 1)} disabled={i === banners.length - 1} className="hover:text-white disabled:opacity-20">â–¼</button>
+                <button onClick={() => move(b.id, -1)} disabled={i === 0} className="hover:text-white disabled:opacity-20">▲</button>
+                <button onClick={() => move(b.id, 1)} disabled={i === banners.length - 1} className="hover:text-white disabled:opacity-20">▼</button>
               </span>
               <GripVertical size={14} className="text-[#2A3A4D]" />
               <span className={cn(
@@ -211,7 +218,7 @@ export default function BannersPage() {
 
               <button
                 onClick={() => patch(b.id, { enabled: !b.enabled })}
-                title={b.enabled ? 'Ativo â€” clique para ocultar' : 'Oculto â€” clique para ativar'}
+                title={b.enabled ? 'Ativo — clique para ocultar' : 'Oculto — clique para ativar'}
                 className={cn('ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-semibold',
                   b.enabled ? 'text-[#1FD196] hover:bg-[#1FD196]/10' : 'text-[#7E8DA2] hover:bg-white/5')}
               >
@@ -225,8 +232,8 @@ export default function BannersPage() {
 
             {b.type === 'text' ? (
               <div className="grid grid-cols-2 gap-3">
-                <Campo label="TÃ­tulo" value={b.title ?? ''} onChange={v => patch(b.id, { title: v })} placeholder="BÃ´nus de 100% no primeiro depÃ³sito" />
-                <Campo label="Linha de apoio" value={b.subtitle ?? ''} onChange={v => patch(b.id, { subtitle: v })} placeholder="VÃ¡lido atÃ© domingo" />
+                <Campo label="Título" value={b.title ?? ''} onChange={v => patch(b.id, { title: v })} placeholder="Bônus de 100% no primeiro depósito" />
+                <Campo label="Linha de apoio" value={b.subtitle ?? ''} onChange={v => patch(b.id, { subtitle: v })} placeholder="Válido até domingo" />
               </div>
             ) : (
               <div className="flex items-center gap-4">
@@ -234,14 +241,14 @@ export default function BannersPage() {
                   {b.imageUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={b.imageUrl} alt="" className="h-full w-full object-cover" />
-                    : <span className="text-[11.5px] text-[#5B6A7E]">PrÃ©via no tamanho real (420 Ã— 64)</span>}
+                    : <span className="text-[11.5px] text-[#5B6A7E]">Prévia no tamanho real (420 × 64)</span>}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <input
                     ref={el => { fileInputs.current[b.id] = el }}
                     type="file"
                     // image/* aceita qualquer formato que o browser decodifique,
-                    // inclusive HEIC do iPhone â€” o cortador normaliza tudo em PNG.
+                    // inclusive HEIC do iPhone — o cortador normaliza tudo em PNG.
                     accept="image/*"
                     className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) setCropAlvo({ id: b.id, file: f }); e.target.value = '' }}
@@ -252,15 +259,30 @@ export default function BannersPage() {
                     className="flex items-center justify-center gap-2 rounded-lg border border-[#1B2735] bg-[#0A1017] px-3 py-2 text-[12.5px] font-semibold text-[#C3CFDD] hover:border-[#2A3A4D] hover:text-white disabled:opacity-50"
                   >
                     {uploadingId === b.id ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    {uploadingId === b.id ? 'Enviandoâ€¦' : 'Enviar imagem'}
+                    {uploadingId === b.id ? 'Enviando…' : 'Enviar imagem'}
                   </button>
-                  <p className="text-[11px] text-[#6B7A8E]">Qualquer imagem Â· vocÃª recorta no formato do card antes de enviar</p>
+                  <p className="text-[11px] text-[#6B7A8E]">Qualquer imagem · você recorta no formato do card antes de enviar</p>
                 </div>
               </div>
             )}
 
-            <div className="mt-3">
-              <Campo label="Link ao clicar (opcional)" value={b.href ?? ''} onChange={v => patch(b.id, { href: v })} placeholder="https://â€¦" />
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-semibold text-[#9ca3af]">Ao clicar</span>
+                <select
+                  value={b.action ?? 'none'}
+                  onChange={e => patch(b.id, { action: e.target.value as Acao })}
+                  className="w-full rounded-lg border border-[#1e2433] bg-[#0d1117] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#2E6BE6]"
+                >
+                  <option value="none">Nada — banner só informativo</option>
+                  <option value="deposit">Abrir a tela de depósito</option>
+                  <option value="link">Abrir um link</option>
+                </select>
+              </label>
+
+              {b.action === 'link' && (
+                <Campo label="Link" value={b.href ?? ''} onChange={v => patch(b.id, { href: v })} placeholder="https://…" />
+              )}
             </div>
           </section>
         ))}

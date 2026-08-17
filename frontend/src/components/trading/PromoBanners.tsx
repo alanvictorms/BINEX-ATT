@@ -27,12 +27,19 @@ export interface PromoBanner {
   subtitle?: string
   imageUrl?: string
   href?: string
+  /**
+   * O que o clique faz. Ausente = regra antiga (tem href, vira link), pra banner
+   * já cadastrado continuar se comportando igual sem ninguém reeditar.
+   */
+  action?: 'none' | 'link' | 'deposit'
   enabled?: boolean
 }
 
 const ROTATE_MS = 6000
 
-export function PromoBanners({ className }: { className?: string }) {
+export function PromoBanners({
+  className, onDeposit,
+}: { className?: string; onDeposit?: () => void }) {
   const [banners, setBanners] = useState<PromoBanner[]>([])
   const [index, setIndex] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -61,7 +68,11 @@ export function PromoBanners({ className }: { className?: string }) {
   if (banners.length === 0) return null
 
   const b = banners[Math.min(index, banners.length - 1)]
-  const clickable = Boolean(b.href)
+  const action = b.action ?? (b.href ? 'link' : 'none')
+  // Só vira botão se o pai souber abrir o depósito — banner marcado como
+  // 'deposit' numa tela sem modal fica inerte em vez de clicar e não fazer nada.
+  const abreDeposito = action === 'deposit' && !!onDeposit
+  const abreLink     = action === 'link' && !!b.href
 
   const inner = b.type === 'image' ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -90,7 +101,15 @@ export function PromoBanners({ className }: { className?: string }) {
         className,
       )}
     >
-      {clickable ? (
+      {abreDeposito ? (
+        <button
+          type="button"
+          onClick={onDeposit}
+          className="block h-full w-full cursor-pointer text-left"
+        >
+          {inner}
+        </button>
+      ) : abreLink ? (
         <a href={b.href} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
           {inner}
         </a>

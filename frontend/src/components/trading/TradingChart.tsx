@@ -139,6 +139,8 @@ interface TradingChartProps {
   performanceMode?: boolean
   activeTrades?: ActiveTrade[]
   onPriceUpdate?: (price: number) => void
+  /** Abre o modal de depósito — usado pelo banner de campanha do carrossel. */
+  onDeposito?: () => void
 }
 
 function calculateBollingerBands(candles: Candle[], period = 20, mult = 2) {
@@ -383,7 +385,7 @@ function TradeTimer({ expiryTime, x, y, color }: { expiryTime: number; x: number
 const candleCache = new Map<string, { candles: import('@/lib/mockData').Candle[]; ts: number }>()
 const CANDLE_CACHE_TTL = 60 * 1000
 
-export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll = true, performanceMode = true, activeTrades = [], onPriceUpdate }: TradingChartProps) {
+export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll = true, performanceMode = true, activeTrades = [], onPriceUpdate, onDeposito }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const seriesRef = useRef<any>(null)
@@ -3064,7 +3066,7 @@ export function TradingChart({ asset, onInfoClick, theme = 'noite', autoScroll =
               dizia "Nenhum evento de alto impacto agora" — não existia fonte de
               notícia por trás. Virou o carrossel de banners, alimentado pelo
               admin. Sem banner cadastrado ele não renderiza nada. */}
-          <PromoBanners />
+          <PromoBanners onDeposit={onDeposito} />
         </div>
       )}
     </div>

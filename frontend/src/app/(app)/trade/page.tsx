@@ -346,7 +346,7 @@ export default function TradingPage() {
       return (
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <MaisPanel onClose={() => setSidebarTab('TRADE')} onSelectAsset={(asset) => { handleSelectAsset(asset); setSidebarTab('TRADE') }} />
-          <TradingChart asset={selectedAsset} onInfoClick={() => setAssetInfoOpen(true)} autoScroll={tradeSettings.autoScroll} performanceMode={tradeSettings.performanceMode} activeTrades={activeTrades.filter(t => t.assetId === selectedAsset.id)} onPriceUpdate={handlePriceUpdate} />
+          <TradingChart asset={selectedAsset} onInfoClick={() => setAssetInfoOpen(true)} autoScroll={tradeSettings.autoScroll} performanceMode={tradeSettings.performanceMode} activeTrades={activeTrades.filter(t => t.assetId === selectedAsset.id)} onPriceUpdate={handlePriceUpdate} onDeposito={() => setDepositoOpen(true)} />
           <TradingPanel asset={selectedAsset} oneClickTrade={tradeSettings.oneClickTrade} shortLabels={tradeSettings.shortLabels} accountId={currentAccount?.id} onTradeOpened={handleTradeOpened} onTradeExpired={handleTradeExpired} livePrice={livePrice} livePriceRef={livePriceRef} showResultPopup={desktopPopup} onVerTodasPosicoes={() => { setContaInitialTab('operacoes'); setSidebarTab('CONTA') }} />
         </div>
       )
@@ -360,7 +360,7 @@ export default function TradingPage() {
         {!forMobile && assetSelectorOpen && (
           <AssetSelectorModal selectedAsset={selectedAsset} onSelect={handleSelectAsset} onClose={() => setAssetSelectorOpen(false)} />
         )}
-        <TradingChart asset={selectedAsset} onInfoClick={() => setAssetInfoOpen(true)} theme={theme} autoScroll={tradeSettings.autoScroll} performanceMode={tradeSettings.performanceMode} activeTrades={activeTrades.filter(t => t.assetId === selectedAsset.id)} onPriceUpdate={handlePriceUpdate} />
+        <TradingChart asset={selectedAsset} onInfoClick={() => setAssetInfoOpen(true)} theme={theme} autoScroll={tradeSettings.autoScroll} performanceMode={tradeSettings.performanceMode} activeTrades={activeTrades.filter(t => t.assetId === selectedAsset.id)} onPriceUpdate={handlePriceUpdate} onDeposito={() => setDepositoOpen(true)} />
         {!forMobile && <TradingPanel asset={selectedAsset} oneClickTrade={tradeSettings.oneClickTrade} shortLabels={tradeSettings.shortLabels} accountId={currentAccount?.id} onTradeOpened={handleTradeOpened} onTradeExpired={handleTradeExpired} livePrice={livePrice} livePriceRef={livePriceRef} showResultPopup={desktopPopup} onVerTodasPosicoes={() => { setContaInitialTab('operacoes'); setSidebarTab('CONTA') }} />}
       </div>
     )
