@@ -116,7 +116,7 @@ function LoginPageInner() {
 
   return (
     <div className="min-h-screen overflow-y-auto bg-[#060A11] text-[#E4EBF5] antialiased">
-      <div className="flex min-h-screen w-full items-center justify-center px-5 py-10">
+      <div className="flex min-h-screen w-full items-center justify-center px-4 py-6 sm:px-5 sm:py-10">
         <div className="flex w-full max-w-[1080px] items-stretch gap-10">
 
           {/* Marca / argumentos */}
@@ -155,8 +155,19 @@ function LoginPageInner() {
             </div>
           </div>
 
-          {/* Formulário */}
-          <div className="vx-panel w-full max-w-[430px] shrink-0 rounded-2xl p-7">
+          {/* Formulário — no mobile ocupa a largura toda; o max-w só vale a
+              partir de lg, onde ele divide a tela com a coluna institucional. */}
+          <div className="vx-panel w-full shrink-0 rounded-2xl p-5 sm:p-7 lg:max-w-[430px]">
+            {/* Marca — só no mobile, onde a coluna da esquerda não aparece e a
+                tela ficaria sem nenhuma identificação. */}
+            <div className="mb-6 flex items-center justify-center gap-2.5 lg:hidden">
+              <BrandMark size={30} />
+              <span className="text-[18px] leading-none tracking-[-0.01em]">
+                <span className="font-extrabold text-white">{siteBrand.name}</span>{' '}
+                <span className="font-medium text-[#9AA9BC]">{siteBrand.subtitle}</span>
+              </span>
+            </div>
+
             {mfaStep ? (
               <>
                 <h2 className="vx-h2">Verificação de segurança</h2>
